@@ -8,15 +8,21 @@ and code
 https://github.com/oliver-batchelor/scs_cifar/blob/main/src/scs.py
 from Oliver Batchelor
 https://twitter.com/oliver_batch/status/1488695910875820037?s=20&t=QOnrCRpXpOuC0XHApi6Z7A
+
+and the TensorFlow implementation
+https://colab.research.google.com/drive/1Lo-P_lMbw3t2RTwpzy1p8h0uKjkCx-RB
+and blog post
+https://www.rpisoni.dev/posts/cossim-convolution/
+from Raphael Pisoni
+https://twitter.com/ml_4rtemi5
 """
 import torch
 from torch import nn
 import torch.nn.functional as F
 
-
+# TODO: Swap in torch.nn.functional.unfold for this and check how it affects
+# speed. 
 def unfold2d(x, kernel_size:int, stride:int, padding:int):
-    # Using torch.nn.functional.unfold is also okay
-    # and the effiency will be compared later.
     x = F.pad(x, [padding]*4)
     bs, in_c, h, w = x.size()
     ks = kernel_size
@@ -61,6 +67,9 @@ class SharpenedCosineSimilarity(nn.Module):
             stride=self.stride,
             padding=self.padding)
         n, c, h, w, _, _ = x.shape
+        # TODO: Speed up the code ~10% by removeing this reshape and
+        # taking care of the extra dimensions in the sum and einsum
+        # calls below.
         x = x.reshape(n,c,h,w,-1)
 
         # After unfolded and reshaped, dimensions of the images x are

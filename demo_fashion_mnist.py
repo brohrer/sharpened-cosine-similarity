@@ -7,6 +7,7 @@ by Michael Li
 https://www.linkedin.com/in/michael-li-dfw/
 """
 import os
+import sys
 import time
 import numpy as np
 import torch
@@ -17,18 +18,27 @@ from torch.optim.lr_scheduler import OneCycleLR
 import torchvision
 import torchvision.transforms as transforms
 
+# TODO: Debug MaxAbsPool and swap in.
 # from absolute_pooling_pt import MaxAbsPool2d
 from sharpened_cosine_similarity import SharpenedCosineSimilarity
 
-version = "00"
 batch_size = 1024
-n_epochs = 100
-max_lr = .02
+n_epochs = 5
+max_lr = .01
 n_runs = 1000
 
-accuracy_results_path = f"results/accuracy_{version}.npy"
-accuracy_history_path = f"results/accuracy_history_{version}.npy"
-loss_results_path = f"results/loss_{version}.npy"
+# Allow for a version to be provided at the command line, as in
+# $ python3 demo_fashion_mnist.py v15
+if len(sys.argv) > 1:
+    version = sys.argv[1]
+else:
+    version = "test"
+
+# Lay out the desitinations for all the results.
+accuracy_results_path = os.path.join(f"results", f"accuracy_{version}.npy")
+accuracy_history_path = os.path.join(
+    "results", f"accuracy_history_{version}.npy")
+loss_results_path = os.path.join("results", f"loss_{version}.npy")
 os.makedirs("results", exist_ok=True)
 
 # Use standard FashionMNIST dataset
@@ -45,7 +55,7 @@ test_set = torchvision.datasets.FashionMNIST(
     transform=transforms.Compose([transforms.ToTensor()])
 )
 
-# Build the neural network, expand on top of nn.Module
+
 class Network(nn.Module):
   def __init__(self):
     super().__init__()
@@ -101,7 +111,6 @@ for i_run in range(n_runs):
     scheduler = OneCycleLR(
         optimizer,
         max_lr=max_lr,
-        # pct_start=0.01,
         steps_per_epoch=len(training_loader),
         epochs=n_epochs)
 
@@ -135,6 +144,8 @@ for i_run in range(n_runs):
         training_accuracy = (
             epoch_training_num_correct / len(training_loader.dataset))
 
+        # At the end of each epoch run the testing data through an
+        # evaluation pass to see how the model is doing.
         test_preds = torch.tensor([])
         for batch in testing_loader:
             images, labels = batch
