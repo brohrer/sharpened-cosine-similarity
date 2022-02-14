@@ -7,11 +7,16 @@ At your command line:
 ```bash
 git clone https://github.com/brohrer/sharpened_cosine_similarity_torch.git
 ```
+You'll need to install or upgrade PyTorch if you haven't already.
+If `python3` is the command you use to invoke Python at your command line:
+
+```bash
+python3 -m pip install torch --upgrade
+```
 
 ## Demo
 Run the Fashion MNIST demo to see sharpened cosine similarity in action.
 
-If `python3` is the command you use to invoke Python at your command line:
 ```bash
 cd sharpened_cosine_similarity_torch
 python3 demo_fashion_mnist.py
