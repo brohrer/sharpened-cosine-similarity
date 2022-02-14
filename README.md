@@ -47,9 +47,11 @@ stderr: 0.03887%
 n runs: 8
 ```
 
-and drop a couple of plots in the `plots` directory showing how the
+and drop a couple of plots like this in the `plots` directory showing how the
 classification error on the test data set decreases with each pass through
 the training data set.
+
+![A sample of testing error results over several runs](results_sample.png)
 
 The demo will keep running for a long time if you let it. Kill it when you get bored of it.
 If you want to pick the sequence of runs back up, re-run the demo and it will load all
