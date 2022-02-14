@@ -11,7 +11,7 @@ You'll need to install or upgrade PyTorch if you haven't already.
 If `python3` is the command you use to invoke Python at your command line:
 
 ```bash
-python3 -m pip install torch --upgrade
+python3 -m pip install torch torchvision --upgrade
 ```
 
 ## Demo
@@ -22,7 +22,14 @@ cd sharpened_cosine_similarity_torch
 python3 demo_fashion_mnist.py
 ```
 
+When you run this it will take a few extra minutes the first time through to download and extract
+the [Fashion MNIST](https://github.com/zalandoresearch/fashion-mnist) data set. Its less than 100MB
+when fully extracted.
+
 ## Monitor
+You can check on the status of your runs at any time. In another console navigate to the smae directory
+and run
+
 ```bash
 python3 show_results.py
 ```
@@ -41,6 +48,28 @@ and drop a couple of plots in the `plots` directory showing how the
 classification error on the test data set decreases with each pass through
 the training data set.
 
+The demo will keep running for a long time if you let it. Kill it when you get bored of it.
+If you want to pick the sequence of runs back up, re-run the demo and it will load all
+the results it's generated so far and append to them.
+
+## Track
+If you'd like to experiment with the sharpened cosine similarity code, the demo, or with other data sets,
+you can keep track of each new run by adding a version argument at the command line.
+
+To start a run with version string "v37" run
+
+```bash
+python3 demo_fashion_mnist.py v37
+```
+
+To check on its progress
+
+```bash
+python3 show_results.py v37
+```
+
+The version string can be arbitrarily descriptive, for example "3_scs_layer_2_fully_connected_layer_learning_rate_003",
+but keep it alphanumeric with underscores.
 
 ## Credit where it's due
 Based on  and copy/pasted heavily from [code](https://github.com/ZeWang95/scs_pytorch/blob/main/scs.py)
