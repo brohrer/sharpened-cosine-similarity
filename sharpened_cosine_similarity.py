@@ -20,8 +20,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-# TODO: Swap in torch.nn.functional.unfold for this and check how it affects
-# speed. 
+
 def unfold2d(x, kernel_size:int, stride:int, padding:int):
     x = F.pad(x, [padding]*4)
     bs, in_c, h, w = x.size()
@@ -39,7 +38,7 @@ class SharpenedCosineSimilarity(nn.Module):
         out_channels=1,
         kernel_size=1,
         stride=1,
-        padding:int=0,
+        padding=0,
         eps=1e-12,
     ):
         super(SharpenedCosineSimilarity, self).__init__()

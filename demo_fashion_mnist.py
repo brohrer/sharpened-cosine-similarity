@@ -23,7 +23,7 @@ import torchvision.transforms as transforms
 from sharpened_cosine_similarity import SharpenedCosineSimilarity
 
 batch_size = 1024
-n_epochs = 5
+n_epochs = 100
 max_lr = .01
 n_runs = 1000
 
