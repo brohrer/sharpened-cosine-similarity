@@ -26,6 +26,9 @@ When you run this it will take a few extra minutes the first time through to dow
 the [Fashion MNIST](https://github.com/zalandoresearch/fashion-mnist) data set. Its less than 100MB
 when fully extracted.
 
+I run this entirely on laptop CPUs. I have a dual-core i7 that takes about 90 seconds per epoch and
+an 8-core i7 that takes about 45 seconds per epoch. Your mileage may vary.
+
 ## Monitor
 You can check on the status of your runs at any time. In another console navigate to the smae directory
 and run
