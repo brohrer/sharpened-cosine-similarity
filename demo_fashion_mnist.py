@@ -19,7 +19,7 @@ import torchvision
 import torchvision.transforms as transforms
 
 from absolute_pooling import MaxAbsPool2d
-from sharpened_cosine_similarity import SharpenedCosineSimilarity # , maxAbsPool2d
+from sharpened_cosine_similarity import SharpenedCosineSimilarity
 
 batch_size = 1024
 n_epochs = 100
@@ -56,46 +56,34 @@ test_set = torchvision.datasets.FashionMNIST(
 
 
 class Network(nn.Module):
-  def __init__(self):
-    super().__init__()
+    def __init__(self):
+        super().__init__()
 
-    self.scs1 = SharpenedCosineSimilarity(
-        in_channels=1, out_channels=8, kernel_size=3, padding=0)
-    self.pool1 = MaxAbsPool2d(kernel_size=2, stride=2, ceil_mode=True)
-    self.scs2 = SharpenedCosineSimilarity(
-        in_channels=8, out_channels=16, kernel_size=3, padding=1)
-    self.pool2 = MaxAbsPool2d(kernel_size=2, stride=2, ceil_mode=True)
-    self.scs3 = SharpenedCosineSimilarity(
-        in_channels=16, out_channels=32, kernel_size=3, padding=1)
-    self.pool3 = MaxAbsPool2d(kernel_size=2, stride=2, ceil_mode=True)
-    self.out = nn.Linear(in_features=32*4*4, out_features=10)
+        self.scs1 = SharpenedCosineSimilarity(
+            in_channels=1, out_channels=8, kernel_size=3, padding=0)
+        self.pool1 = MaxAbsPool2d(kernel_size=2, stride=2, ceil_mode=True)
+        self.scs2 = SharpenedCosineSimilarity(
+            in_channels=8, out_channels=16, kernel_size=3, padding=1)
+        self.pool2 = MaxAbsPool2d(kernel_size=2, stride=2, ceil_mode=True)
+        self.scs3 = SharpenedCosineSimilarity(
+            in_channels=16, out_channels=32, kernel_size=3, padding=1)
+        self.pool3 = MaxAbsPool2d(kernel_size=2, stride=2, ceil_mode=True)
+        self.out = nn.Linear(in_features=32*4*4, out_features=10)
 
-  def forward(self, t):
-    t = self.scs1(t)
-    # t = F.relu(t)
-    # t = F.max_pool2d(t, kernel_size=2, stride=2, ceil_mode=True)
-    # t = self.pool1(t, kernel_size=2, stride=2, ceil_mode=True)
-    # t = maxAbsPool2d(t, kernel_size=2, stride=2)
-    t = self.pool1(t)
+    def forward(self, t):
+        t = self.scs1(t)
+        t = self.pool1(t)
 
-    t = self.scs2(t)
-    # t = F.relu(t)
-    # t = F.max_pool2d(t, kernel_size=2, stride=2, ceil_mode=True)
-    # t = self.pool2(t, kernel_size=2, stride=2, ceil_mode=True)
-    # t = maxAbsPool2d(t, kernel_size=2, stride=2, padding=(0, 1, 0, 1))
-    t = self.pool2(t)
+        t = self.scs2(t)
+        t = self.pool2(t)
 
-    t = self.scs3(t)
-    # t = F.relu(t)
-    # t = F.max_pool2d(t, kernel_size=2, stride=2, ceil_mode=True)
-    # t = self.pool3(t, kernel_size=2, stride=2, ceil_mode=True)
-    # t = maxAbsPool2d(t, kernel_size=2, stride=2, padding=(0, 1, 0, 1))
-    t = self.pool3(t)
+        t = self.scs3(t)
+        t = self.pool3(t)
 
-    t = t.reshape(-1, 32*4*4)
-    t = self.out(t)
+        t = t.reshape(-1, 32*4*4)
+        t = self.out(t)
 
-    return t
+        return t
 
 
 training_loader = torch.utils.data.DataLoader(
@@ -170,13 +158,13 @@ for i_run in range(n_runs):
         epoch_accuracy_history.append(testing_accuracy)
 
         print(
-            f"run:{i_run}  "
-            f"epoch:{i_epoch}  "
-            f"duration:{epoch_duration:.04}  "
-            f"training loss:{training_loss:.04}  "
-            f"testing loss:{testing_loss:.04}  "
-            f"training accuracy:{100 * training_accuracy:.04}%  "
-            f"testing accuracy:{100 * testing_accuracy:.04}%"
+            f"run: {i_run}   "
+            f"epoch: {i_epoch}   "
+            f"duration: {epoch_duration:.04}   "
+            f"training loss: {training_loss:.04}   "
+            f"testing loss: {testing_loss:.04}   "
+            f"training accuracy: {100 * training_accuracy:.04}%   "
+            f"testing accuracy: {100 * testing_accuracy:.04}%"
         )
 
     accuracy_histories.append(epoch_accuracy_history)

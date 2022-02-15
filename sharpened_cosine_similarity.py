@@ -45,8 +45,14 @@ class SharpenedCosineSimilarity(nn.Module):
         self.w = nn.Parameter(
             w.view(out_channels, in_channels, -1), requires_grad=True)
 
+        self.p_scale = 10
+        p_init = 2**.5 * self.p_scale
         self.register_parameter("p", nn.Parameter(torch.empty(out_channels)))
-        nn.init.constant_(self.p, 2**.5 * 10)
+        nn.init.constant_(self.p, p_init)
+
+        self.q_scale = 100
+        self.register_parameter("q", nn.Parameter(torch.empty(1)))
+        nn.init.constant_(self.q, 10)
 
     def forward(self, x):
         x = unfold2d(
@@ -70,16 +76,20 @@ class SharpenedCosineSimilarity(nn.Module):
         # dim 2, l: kernel size, squared
 
         square_sum = torch.sum(torch.square(x), [1, 4], keepdim=True)
-        x_norm = torch.sqrt(square_sum + self.eps)
+        x_norm = torch.add(
+            torch.sqrt(square_sum + self.eps),
+            torch.square(self.q / self.q_scale))
 
         square_sum = torch.sum(torch.square(self.w), [1, 2], keepdim=True)
-        w_norm = torch.sqrt(square_sum + self.eps)
+        w_norm = torch.add(
+            torch.sqrt(square_sum + self.eps),
+            torch.square(self.q / self.q_scale))
 
         x = torch.einsum('nchwl,vcl->nvhw', x / x_norm, self.w / w_norm)
         sign = torch.sign(x)
 
         x = torch.abs(x) + self.eps
-        x = x.pow(torch.square(self.p / 10).view(1, -1, 1, 1))
+        x = x.pow(torch.square(self.p / self.p_scale).view(1, -1, 1, 1))
         return sign * x
 
 
