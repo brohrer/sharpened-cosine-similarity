@@ -46,7 +46,7 @@ class SharpenedCosineSimilarity(nn.Module):
             w.view(out_channels, in_channels, -1), requires_grad=True)
 
         self.register_parameter("p", nn.Parameter(torch.empty(out_channels)))
-        nn.init.constant_(self.p, 2**.5)
+        nn.init.constant_(self.p, 2**.5 * 10)
 
     def forward(self, x):
         x = unfold2d(
@@ -79,7 +79,7 @@ class SharpenedCosineSimilarity(nn.Module):
         sign = torch.sign(x)
 
         x = torch.abs(x) + self.eps
-        x = x.pow(torch.square(self.p).view(1, -1, 1, 1))
+        x = x.pow(torch.square(self.p / 10).view(1, -1, 1, 1))
         return sign * x
 
 

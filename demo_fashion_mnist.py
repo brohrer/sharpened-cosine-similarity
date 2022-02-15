@@ -175,8 +175,8 @@ for i_run in range(n_runs):
             f"duration:{epoch_duration:.04}  "
             f"training loss:{training_loss:.04}  "
             f"testing loss:{testing_loss:.04}  "
-            f"training accuracy:{training_accuracy:.04}  "
-            f"testing accuracy:{testing_accuracy:.04}"
+            f"training accuracy:{100 * training_accuracy:.04}%  "
+            f"testing accuracy:{100 * testing_accuracy:.04}%"
         )
 
     accuracy_histories.append(epoch_accuracy_history)
