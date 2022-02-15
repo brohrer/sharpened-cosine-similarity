@@ -21,16 +21,6 @@ from torch import nn
 import torch.nn.functional as F
 
 
-def unfold2d(x, kernel_size:int, stride:int, padding:int):
-    x = F.pad(x, [padding]*4)
-    bs, in_c, h, w = x.size()
-    ks = kernel_size
-    strided_x = x.as_strided(
-        (bs, in_c, (h - ks) // stride + 1, (w - ks) // stride + 1, ks, ks),
-        (in_c * h * w, h * w, stride * w, stride, w, 1))
-    return strided_x
-
-
 class SharpenedCosineSimilarity(nn.Module):
     def __init__(
         self,
@@ -58,7 +48,6 @@ class SharpenedCosineSimilarity(nn.Module):
         self.register_parameter("p", nn.Parameter(torch.empty(out_channels)))
         nn.init.constant_(self.p, 2**.5)
 
-
     def forward(self, x):
         x = unfold2d(
             x,
@@ -66,9 +55,6 @@ class SharpenedCosineSimilarity(nn.Module):
             stride=self.stride,
             padding=self.padding)
         n, c, h, w, _, _ = x.shape
-        # TODO: Speed up the code ~10% by removeing this reshape and
-        # taking care of the extra dimensions in the sum and einsum
-        # calls below.
         x = x.reshape(n,c,h,w,-1)
 
         # After unfolded and reshaped, dimensions of the images x are
@@ -95,3 +81,32 @@ class SharpenedCosineSimilarity(nn.Module):
         x = torch.abs(x) + self.eps
         x = x.pow(torch.square(self.p).view(1, -1, 1, 1))
         return sign * x
+
+
+def unfold2d(x, kernel_size:int, stride:int, padding:int):
+    x = F.pad(x, [padding]*4)
+    bs, in_c, h, w = x.size()
+    ks = kernel_size
+    strided_x = x.as_strided(
+        (bs, in_c, (h - ks) // stride + 1, (w - ks) // stride + 1, ks, ks),
+        (in_c * h * w, h * w, stride * w, stride, w, 1))
+    return strided_x
+
+
+def maxAbsPool2d(x, kernel_size=3, stride=1, padding=(0, 0, 0, 0)):
+    """
+    Code here is based on code from Stephen (@whistle_posse)
+    https://twitter.com/whistle_posse/status/1488656595114663939?s=20&t=lB_T74PcwZmlJ1rrdu8tfQ
+    from this notebook
+    https://github.com/StephenHogg/SCS/blob/main/SCS/layer.py
+
+    and code from rwightman
+    https://gist.github.com/rwightman/f2d3849281624be7c0f11c85c87c1598
+    """
+    x = F.pad(x, padding)
+    x = x.unfold(2, kernel_size, stride).unfold(3, kernel_size, stride)
+    x = x.contiguous().view(x.size()[:4] + (-1,))
+    pos_pool, pos_indices = torch.max(x, dim=-1)
+    neg_pool, neg_indices = torch.max(-x, dim=-1)
+    pool = torch.where(pos_pool > neg_pool, pos_pool, -neg_pool)
+    return pool
