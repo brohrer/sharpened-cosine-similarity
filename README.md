@@ -29,6 +29,8 @@ when fully extracted.
 I run this entirely on laptop CPUs. I have a dual-core i7 that takes about 90 seconds per epoch and
 an 8-core i7 that takes about 45 seconds per epoch. Your mileage may vary.
 
+There's also a CIFAR-10 demo at `demo_cifar10.py`.
+
 ## Monitor
 You can check on the status of your runs at any time. In another console navigate to the smae directory
 and run
@@ -51,7 +53,7 @@ and drop a couple of plots like this in the `plots` directory showing how the
 classification error on the test data set decreases with each pass through
 the training data set.
 
-![A sample of testing error results over several runs](results_sample.png)
+<img title="A sample of testing error results over several runs" src="results_sample.png" width=350 align=center>
 
 The demo will keep running for a long time if you let it. Kill it when you get bored of it.
 If you want to pick the sequence of runs back up, re-run the demo and it will load all
@@ -80,12 +82,15 @@ but keep it alphanumeric with underscores.
 Based on and copy/pasted heavily from 
 
 * [code](https://github.com/ZeWang95/scs_pytorch/blob/main/scs.py)
-from @ZeWang95 ([@ZeWang46564905 on Twitter](https://twitter.com/ZeWang46564905/status/1488371679936057348?s=20&t=lB_T74PcwZmlJ1rrdu8tfQ))
+from [@ZeWang95](https://github.com/ZeWang95)
+([@ZeWang46564905 on Twitter](https://twitter.com/ZeWang46564905/status/1488371679936057348?s=20&t=lB_T74PcwZmlJ1rrdu8tfQ))
 
 * [code](https://github.com/oliver-batchelor/scs_cifar/blob/main/src/scs.py)
-from @Oliver-Batchelor ([@oliver_batch on Twitter](https://twitter.com/oliver_batch/status/1488695910875820037?s=20&t=QOnrCRpXpOuC0XHApi6Z7A))
+from [@Oliver-Batchelor](https://github.com/oliver-batchelor)
+([@oliver_batch on Twitter](https://twitter.com/oliver_batch/status/1488695910875820037?s=20&t=QOnrCRpXpOuC0XHApi6Z7A))
 
-* [code](https://github.com/StephenHogg/SCS/blob/main/SCS/layer.py) from and conversations with @StephenHogg 
+* [code](https://github.com/StephenHogg/SCS/blob/main/SCS/layer.py) from and conversations with
+[@StephenHogg](https://github.com/StephenHogg) 
 ([@whistleposse on Twitter](https://twitter.com/whistle_posse/status/1488656595114663939?s=20&t=lB_T74PcwZmlJ1rrdu8tfQ))
 
 * the TensorFlow [implementation](https://colab.research.google.com/drive/1Lo-P_lMbw3t2RTwpzy1p8h0uKjkCx-RB)
