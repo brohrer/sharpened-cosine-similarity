@@ -106,3 +106,12 @@ in 2020.
 
 <img title="A sample of testing error results over several runs"
   src="images/scs_tweet.png" width=500 align=center>
+  
+## Examples
+In the age of gargantuan language models, it's uncommon to talk about how *few* parameters a model uses,
+but it matters when you hope to deploy on compute- or power-limited devices. Sharpened cosine similarity
+is exceptionally parameter efficient.
+
+[`model_cifar10_18_4.py`](model_cifar10_18_4.py) is an image classification model that gets 18.4% error on CIFAR 10, using only 68k parameters.
+According to the [CIFAR-10 Papers With Code](https://paperswithcode.com/sota/image-classification-on-cifar-10?dimension=PARAMS)
+this is somewhere around one-tenth of the parameters in previous models in this accuracy range.
