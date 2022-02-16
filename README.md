@@ -53,7 +53,8 @@ and drop a couple of plots like this in the `plots` directory showing how the
 classification error on the test data set decreases with each pass through
 the training data set.
 
-<img title="A sample of testing error results over several runs" src="results_sample.png" width=350 align=center>
+<img title="A sample of testing error results over several runs"
+  src="images/results_sample.png" width=350 align=center>
 
 The demo will keep running for a long time if you let it. Kill it when you get bored of it.
 If you want to pick the sequence of runs back up, re-run the demo and it will load all
@@ -79,7 +80,7 @@ The version string can be arbitrarily descriptive, for example "3_scs_layer_2_fu
 but keep it alphanumeric with underscores.
 
 ## Credit where it's due
-Based on and copy/pasted heavily from 
+The code here is based on and copy/pasted heavily from 
 
 * [code](https://github.com/ZeWang95/scs_pytorch/blob/main/scs.py)
 from [@ZeWang95](https://github.com/ZeWang95)
@@ -96,3 +97,12 @@ from [@Oliver-Batchelor](https://github.com/oliver-batchelor)
 * the TensorFlow [implementation](https://colab.research.google.com/drive/1Lo-P_lMbw3t2RTwpzy1p8h0uKjkCx-RB)
 and [blog post](https://www.rpisoni.dev/posts/cossim-convolution/)
 from Raphael Pisoni ([@ml_4rtemi5 on Twitter](https://twitter.com/ml_4rtemi5)).
+
+## Background
+
+The idea behind sharpened cosine similarity first surfaced as
+[a Twitter thread](https://twitter.com/_brohrer_/status/1232063619657093120)
+in 2020.
+
+<img title="A sample of testing error results over several runs"
+  src="images/results_sample.png" width=500 align=center>
