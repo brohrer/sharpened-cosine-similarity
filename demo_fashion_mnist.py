@@ -1,11 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Based on and copy/pasted heavily from
-PyTorch tutorial
-https://colab.research.google.com/drive/1YWzAjpAnLI23irBQtLvDTYT1A94uCloM
-by Michael Li
-https://www.linkedin.com/in/michael-li-dfw/
-"""
 import os
 import sys
 import time
