@@ -77,10 +77,17 @@ The version string can be arbitrarily descriptive, for example "3_scs_layer_2_fu
 but keep it alphanumeric with underscores.
 
 ## Credit where it's due
-Based on  and copy/pasted heavily from [code](https://github.com/ZeWang95/scs_pytorch/blob/main/scs.py)
-from [Ze Wang](https://twitter.com/ZeWang46564905/status/1488371679936057348?s=20&t=lB_T74PcwZmlJ1rrdu8tfQ)
-and [code](https://github.com/oliver-batchelor/scs_cifar/blob/main/src/scs.py)
-from [Oliver Batchelor](https://twitter.com/oliver_batch/status/1488695910875820037?s=20&t=QOnrCRpXpOuC0XHApi6Z7A)
-and the TensorFlow [implementation](https://colab.research.google.com/drive/1Lo-P_lMbw3t2RTwpzy1p8h0uKjkCx-RB)
+Based on and copy/pasted heavily from 
+
+* [code](https://github.com/ZeWang95/scs_pytorch/blob/main/scs.py)
+from @ZeWang95 ([@ZeWang46564905 on Twitter](https://twitter.com/ZeWang46564905/status/1488371679936057348?s=20&t=lB_T74PcwZmlJ1rrdu8tfQ))
+
+* [code](https://github.com/oliver-batchelor/scs_cifar/blob/main/src/scs.py)
+from @Oliver-Batchelor ([@oliver_batch on Twitter](https://twitter.com/oliver_batch/status/1488695910875820037?s=20&t=QOnrCRpXpOuC0XHApi6Z7A))
+
+* [code](https://github.com/StephenHogg/SCS/blob/main/SCS/layer.py) from and conversations with @StephenHogg 
+([@whistleposse on Twitter](https://twitter.com/whistle_posse/status/1488656595114663939?s=20&t=lB_T74PcwZmlJ1rrdu8tfQ))
+
+* the TensorFlow [implementation](https://colab.research.google.com/drive/1Lo-P_lMbw3t2RTwpzy1p8h0uKjkCx-RB)
 and [blog post](https://www.rpisoni.dev/posts/cossim-convolution/)
-from [Raphael Pisoni](https://twitter.com/ml_4rtemi5).
+from Raphael Pisoni ([@ml_4rtemi5 on Twitter](https://twitter.com/ml_4rtemi5)).
