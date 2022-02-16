@@ -105,4 +105,4 @@ The idea behind sharpened cosine similarity first surfaced as
 in 2020.
 
 <img title="A sample of testing error results over several runs"
-  src="images/results_sample.png" width=500 align=center>
+  src="images/scs_tweet.png" width=500 align=center>
