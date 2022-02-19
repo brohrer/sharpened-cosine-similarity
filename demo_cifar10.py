@@ -145,6 +145,7 @@ for i_run in range(n_runs):
         for batch in testing_loader:
             images, labels = batch
             preds = network(images)
+            loss = F.cross_entropy(preds, labels)
             test_preds = torch.cat((test_preds, preds), dim = 0)
 
             epoch_testing_loss += loss.item() * testing_loader.batch_size
