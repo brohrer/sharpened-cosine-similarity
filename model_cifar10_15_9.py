@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader
 import torchvision
 from torchvision.datasets import CIFAR10
 import torchvision.transforms as transforms
+from tqdm import tqdm
 
 from absolute_pooling import MaxAbsPool2d
 from sharpened_cosine_similarity import SharpenedCosineSimilarity
@@ -110,13 +111,16 @@ except Exception:
     accuracy_results = []
     accuracy_histories = []
 
+
+steps_per_epoch = len(training_loader)
+
 for i_run in range(n_runs):
     network = Network()
     optimizer = optim.Adam(network.parameters(), lr=max_lr)
     scheduler = OneCycleLR(
         optimizer,
         max_lr=max_lr,
-        steps_per_epoch=len(training_loader),
+        steps_per_epoch=steps_per_epoch,
         epochs=n_epochs)
 
     epoch_accuracy_history = []
@@ -128,46 +132,45 @@ for i_run in range(n_runs):
         epoch_training_num_correct = 0
         epoch_testing_num_correct = 0
 
-        for batch in training_loader:
+        with tqdm(enumerate(training_loader)) as tqdm_training_loader:
+            for batch_idx, batch in tqdm_training_loader:
 
-            images = batch[0]
-            labels = batch[1]
-            preds = network(images)
-            loss = F.cross_entropy(preds, labels)
+                images, labels = batch
+                preds = network(images)
+                loss = F.cross_entropy(preds, labels)
 
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            scheduler.step()
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                scheduler.step()
 
-            epoch_training_loss += loss.item() * training_loader.batch_size
-            epoch_training_num_correct += (
-                preds.argmax(dim=1).eq(labels).sum().item())
-            epoch_duration = time.time() - epoch_start_time
+                epoch_training_loss += loss.item() * training_loader.batch_size
+                epoch_training_num_correct += (preds.argmax(dim=1).eq(labels).sum().item())
+
+                tqdm_training_loader.set_description(
+                    f'Step: {batch_idx + 1}/{steps_per_epoch}, '
+                    f'Epoch: {i_epoch + 1}/{n_epochs}, '
+                    f'Run: {i_run + 1}/{n_runs}'
+                )
 
         epoch_duration = time.time() - epoch_start_time
         training_loss = epoch_training_loss / len(training_loader.dataset)
-        training_accuracy = (
-            epoch_training_num_correct / len(training_loader.dataset))
+        training_accuracy = (epoch_training_num_correct / len(training_loader.dataset))
 
         # At the end of each epoch run the testing data through an
         # evaluation pass to see how the model is doing.
         # Specify no_grad() to prevent a nasty out-of-memory condition.
         with torch.no_grad():
-            test_preds = torch.tensor([])
             for batch in testing_loader:
                 images, labels = batch
                 preds = network(images)
                 loss = F.cross_entropy(preds, labels)
-                test_preds = torch.cat((test_preds, preds), dim = 0)
 
                 epoch_testing_loss += loss.item() * testing_loader.batch_size
-                epoch_testing_num_correct += (
-                    preds.argmax(dim=1).eq(labels).sum().item())
+                epoch_testing_num_correct += (preds.argmax(dim=1).eq(labels).sum().item())
 
             testing_loss = epoch_testing_loss / len(testing_loader.dataset)
-            testing_accuracy = (
-                epoch_testing_num_correct / len(testing_loader.dataset))
+            testing_accuracy = (epoch_testing_num_correct / len(testing_loader.dataset))
             epoch_accuracy_history.append(testing_accuracy)
 
         print(
