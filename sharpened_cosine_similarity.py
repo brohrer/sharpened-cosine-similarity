@@ -156,9 +156,10 @@ class SharpenedCosineSimilarity_ConvImpl(nn.Module):
 
         q_sqr = (self.q / self.q_scale) ** 2
 
-        # a small difference: we omit the eps parameter since self.q ** 2 will be
-        # positive
-        w_normed = w / (w_norm + q_sqr)
+        # a small difference: we add eps outside of the norm
+        # instead of inside in order to reuse the performant
+        # code of torch.linalg.vector_norm
+        w_normed = w / ((w_norm + self.eps) + q_sqr)
 
         x_norm_squared = F.avg_pool2d(
             x ** 2,
@@ -176,7 +177,7 @@ class SharpenedCosineSimilarity_ConvImpl(nn.Module):
             padding=self.padding,
         )
 
-        y = y_denorm / (x_norm_squared.sqrt() + q_sqr)
+        y = y_denorm / ((x_norm_squared + self.eps).sqrt() + q_sqr)
 
         sign = torch.sign(y)
 
