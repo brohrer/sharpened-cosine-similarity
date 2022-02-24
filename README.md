@@ -11,7 +11,7 @@ You'll need to install or upgrade PyTorch if you haven't already.
 If `python3` is the command you use to invoke Python at your command line:
 
 ```bash
-python3 -m pip install torch torchvision --upgrade
+python3 -m pip install torch torchvision tqdm --upgrade
 ```
 
 ## Demo
