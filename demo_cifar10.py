@@ -151,11 +151,8 @@ for i_run in range(n_runs):
         for batch in testing_loader:
             images, labels = batch
             preds = network(images)
-<<<<<<< HEAD
             loss = F.cross_entropy(preds, labels)
-=======
             test_preds = torch.cat((test_preds, preds), dim = 0)
->>>>>>> parent of 690909f... Bugfix for #3
 
             epoch_testing_loss += loss.item() * testing_loader.batch_size
             epoch_testing_num_correct += (preds.argmax(dim=1).eq(labels).sum().item())
