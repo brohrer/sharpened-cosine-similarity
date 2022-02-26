@@ -102,7 +102,9 @@ from Raphael Pisoni ([@ml_4rtemi5 on Twitter](https://twitter.com/ml_4rtemi5)).
 
 The idea behind sharpened cosine similarity first surfaced as
 [a Twitter thread](https://twitter.com/_brohrer_/status/1232063619657093120)
-in 2020.
+in 2020. The most comprehensive history of the project is currently in
+rough form in
+<a href="https://e2eml.school/scs.html">this post</a>.
 
 <img title="A sample of testing error results over several runs"
   src="images/scs_tweet.png" width=500 align=center>
@@ -112,6 +114,9 @@ In the age of gargantuan language models, it's uncommon to talk about how *few* 
 but it matters when you hope to deploy on compute- or power-limited devices. Sharpened cosine similarity
 is exceptionally parameter efficient.
 
-[`model_cifar10_18_4.py`](model_cifar10_18_4.py) is an image classification model that gets 18.4% error on CIFAR 10, using only 68k parameters.
+The repository <a href="https://github.com/brohrer/scs_torch_gallery">scs_torch_gallery</a>
+has a handful of working examples.
+[`model_cifar10_18_4.py`](model_cifar10_18_4.py) is an image
+classification model that gets 18.4% error on CIFAR 10, using only 68k parameters.
 According to the [CIFAR-10 Papers With Code](https://paperswithcode.com/sota/image-classification-on-cifar-10?dimension=PARAMS)
 this is somewhere around one-tenth of the parameters in previous models in this accuracy range.
