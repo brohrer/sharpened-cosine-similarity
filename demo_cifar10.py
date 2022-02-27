@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 import sys
 import time
@@ -7,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.optim.lr_scheduler import OneCycleLR
+from torch.optim.lr_scheduler import ExponentialLR
 from torch.utils.data import DataLoader
 import torchvision
 from torchvision.datasets import CIFAR10
@@ -17,10 +16,14 @@ from tqdm import tqdm
 from absolute_pooling import MaxAbsPool2d
 from sharpened_cosine_similarity import SharpenedCosineSimilarity
 
-batch_size = 1024
-n_epochs = 100
-max_lr = .01
+batch_size = 64
+n_epochs = 200
 n_runs = 1000
+
+# The initial learning rate to kick off the exponential decay
+starting_lr = 1
+# Half-life of the learning rate decay, in epochs
+lr_halflife = 50
 
 # Allow for a version to be provided at the command line, as in
 # $ python3 demo_fashion_mnist.py v15
@@ -101,17 +104,13 @@ except Exception:
     accuracy_results = []
     accuracy_histories = []
 
-
 steps_per_epoch = len(training_loader)
 
 for i_run in range(n_runs):
     network = Network()
-    optimizer = optim.Adam(network.parameters(), lr=max_lr)
-    scheduler = OneCycleLR(
-        optimizer,
-        max_lr=max_lr,
-        steps_per_epoch=steps_per_epoch,
-        epochs=n_epochs)
+    optimizer = optim.SGD(network.parameters(), lr=starting_lr)
+    gamma = .5 ** (1 / lr_halflife)
+    scheduler = ExponentialLR(optimizer, gamma)
 
     epoch_accuracy_history = []
     for i_epoch in range(n_epochs):
@@ -131,10 +130,10 @@ for i_run in range(n_runs):
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-                scheduler.step()
 
                 epoch_training_loss += loss.item() * training_loader.batch_size
-                epoch_training_num_correct += (preds.argmax(dim=1).eq(labels).sum().item())
+                epoch_training_num_correct += (
+                    preds.argmax(dim=1).eq(labels).sum().item())
 
                 tqdm_training_loader.set_description(
                     f'Step: {batch_idx + 1}/{steps_per_epoch}, '
@@ -142,9 +141,12 @@ for i_run in range(n_runs):
                     f'Run: {i_run + 1}/{n_runs}'
                 )
 
+        scheduler.step()
+
         epoch_duration = time.time() - epoch_start_time
         training_loss = epoch_training_loss / len(training_loader.dataset)
-        training_accuracy = (epoch_training_num_correct / len(training_loader.dataset))
+        training_accuracy = (
+            epoch_training_num_correct / len(training_loader.dataset))
 
         # At the end of each epoch run the testing data through an
         # evaluation pass to see how the model is doing.
@@ -152,19 +154,21 @@ for i_run in range(n_runs):
             images, labels = batch
             preds = network(images)
             loss = F.cross_entropy(preds, labels)
-            test_preds = torch.cat((test_preds, preds), dim = 0)
 
             epoch_testing_loss += loss.item() * testing_loader.batch_size
-            epoch_testing_num_correct += (preds.argmax(dim=1).eq(labels).sum().item())
+            epoch_testing_num_correct += (
+                preds.argmax(dim=1).eq(labels).sum().item())
 
         testing_loss = epoch_testing_loss / len(testing_loader.dataset)
-        testing_accuracy = (epoch_testing_num_correct / len(testing_loader.dataset))
+        testing_accuracy = (
+            epoch_testing_num_correct / len(testing_loader.dataset))
         epoch_accuracy_history.append(testing_accuracy)
 
         print(
             f"run: {i_run}   "
             f"epoch: {i_epoch}   "
             f"duration: {epoch_duration:.04}   "
+            f"learning rate: {scheduler.get_last_lr()[0]:.04}   "
             f"training loss: {training_loss:.04}   "
             f"testing loss: {testing_loss:.04}   "
             f"training accuracy: {100 * training_accuracy:.04}%   "

@@ -15,6 +15,9 @@ and blog post
 https://www.rpisoni.dev/posts/cossim-convolution/
 from Raphael Pisoni
 https://twitter.com/ml_4rtemi5
+
+Check here to get the full story.
+https://e2eml.school/scs.html
 """
 import torch
 from torch import nn
@@ -45,14 +48,15 @@ class SharpenedCosineSimilarity(nn.Module):
         self.w = nn.Parameter(
             w.view(out_channels, in_channels, -1), requires_grad=True)
 
-        self.p_scale = 10
-        p_init = 2**.5 * self.p_scale
+        self.p_scale = 5
+        p_init = 1.1 * self.p_scale
         self.register_parameter("p", nn.Parameter(torch.empty(out_channels)))
         nn.init.constant_(self.p, p_init)
 
-        self.q_scale = 100
-        self.register_parameter("q", nn.Parameter(torch.empty(1)))
-        nn.init.constant_(self.q, 10)
+        self.q_scale = .3
+        q_init = 10 * self.q_scale
+        self.register_parameter("q", nn.Parameter(torch.empty(in_channels)))
+        nn.init.constant_(self.q, q_init)
 
     def forward(self, x):
         x = unfold2d(
@@ -61,7 +65,7 @@ class SharpenedCosineSimilarity(nn.Module):
             stride=self.stride,
             padding=self.padding)
         n, c, h, w, _, _ = x.shape
-        x = x.reshape(n,c,h,w,-1)
+        x = x.reshape(n, c, h, w, -1)
 
         # After unfolded and reshaped, dimensions of the images x are
         # dim 0, n: batch size
@@ -75,21 +79,22 @@ class SharpenedCosineSimilarity(nn.Module):
         # dim 1, c: number of input channels
         # dim 2, l: kernel size, squared
 
+        # Only add q parameter to the input norm.
+        # The weight norm is consistently large enough that it
+        # isn't needed there.
         square_sum = torch.sum(torch.square(x), [1, 4], keepdim=True)
         x_norm = torch.add(
             torch.sqrt(square_sum + self.eps),
-            torch.square(self.q / self.q_scale))
+            torch.exp(-self.q / self.q_scale).view(1, -1, 1, 1, 1))
 
         square_sum = torch.sum(torch.square(self.w), [1, 2], keepdim=True)
-        w_norm = torch.add(
-            torch.sqrt(square_sum + self.eps),
-            torch.square(self.q / self.q_scale))
+        w_norm = torch.sqrt(square_sum + self.eps)
 
         x = torch.einsum('nchwl,vcl->nvhw', x / x_norm, self.w / w_norm)
         sign = torch.sign(x)
 
         x = torch.abs(x) + self.eps
-        x = x.pow(torch.square(self.p / self.p_scale).view(1, -1, 1, 1))
+        x = x.pow((torch.exp(self.p / self.p_scale)).view(1, -1, 1, 1))
         return sign * x
 
 
