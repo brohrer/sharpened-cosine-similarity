@@ -19,90 +19,83 @@ https://twitter.com/ml_4rtemi5
 Check here to get the full story.
 https://e2eml.school/scs.html
 """
+
 import torch
 from torch import nn
-import torch.nn.functional as F
+from torch.nn import functional as F
 
 
-class SharpenedCosineSimilarity(nn.Module):
+class CosSimConv2d(nn.Conv2d):
     def __init__(
         self,
-        in_channels=1,
-        out_channels=1,
-        kernel_size=1,
+        in_channels: int,
+        out_channels: int,
+        kernel_size,
         stride=1,
-        padding=0,
-        eps=1e-12,
+        padding=None,
+        dilation=1,
+        groups: int = 1,
+        bias: bool = False,
+        q_init: float = 10,
+        p_init: float = 1.1,
+        q_scale: float = .3,
+        p_scale: float = 5,
     ):
-        super(SharpenedCosineSimilarity, self).__init__()
+        if padding is None:
+            if int(torch.__version__.split('.')[1]) >= 10:
+                padding = "same"
+            else:
+                # This doesn't support even kernels
+                padding = ((stride - 1) + dilation * (kernel_size - 1)) // 2
+        if isinstance(kernel_size, int):
+            kernel_size = (kernel_size, kernel_size)
 
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.kernel_size = kernel_size
-        self.stride = stride
-        self.eps = eps
-        self.padding = int(padding)
+        bias = False  # Disable bias for "true" SCS, add it for better performance
+        assert dilation == 1, "Dilation has to be 1 to use AvgPool2d as L2-Norm backend."
+        assert groups == in_channels or groups == 1, "Either depthwise or full convolution. Grouped not supported"
+        super(CosSimConv2d, self).__init__(
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride,
+            padding,
+            dilation,
+            groups,
+            bias)
+        self.q_scale = q_scale
+        self.q = torch.nn.Parameter(torch.full((1,), q_init * self.q_scale))
+        self.p_scale = p_scale
+        self.p = torch.nn.Parameter(torch.full((1,), p_init * self.p_scale))
 
-        w = torch.empty(out_channels, in_channels, kernel_size, kernel_size)
-        nn.init.xavier_uniform_(w)
-        self.w = nn.Parameter(
-            w.view(out_channels, in_channels, -1), requires_grad=True)
+    def forward(self, inp: torch.Tensor) -> torch.Tensor:
+        out = inp.square()
+        if self.groups == 1:
+            out = out.sum(1, keepdim=True)
+        norm = F.conv2d(
+            out,
+            torch.ones_like(self.weight[:1, :1]),
+            None,
+            self.stride,
+            self.padding,
+            self.dilation) + 1e-6
 
-        self.p_scale = 5
-        p_init = 1.1 * self.p_scale
-        self.register_parameter("p", nn.Parameter(torch.empty(out_channels)))
-        nn.init.constant_(self.p, p_init)
+        q = torch.exp(-self.q / self.q_scale)
+        weight = self.weight / (
+            self.weight.square().sum(dim=(1, 2, 3), keepdim=True).sqrt() + q)
+        out = F.conv2d(
+            inp,
+            weight,
+            self.bias,
+            self.stride,
+            self.padding,
+            self.dilation,
+            self.groups) / norm.sqrt()
 
-        self.q_scale = .3
-        q_init = 10 * self.q_scale
-        self.register_parameter("q", nn.Parameter(torch.empty(in_channels)))
-        nn.init.constant_(self.q, q_init)
-
-    def forward(self, x):
-        x = unfold2d(
-            x,
-            kernel_size=self.kernel_size,
-            stride=self.stride,
-            padding=self.padding)
-        n, c, h, w, _, _ = x.shape
-        x = x.reshape(n, c, h, w, -1)
-
-        # After unfolded and reshaped, dimensions of the images x are
-        # dim 0, n: batch size
-        # dim 1, c: number of input channels
-        # dim 2, h: number of rows in the image
-        # dim 3, w: number of columns in the image
-        # dim 4, l: kernel size, squared
-        #
-        # The dimensions of the weights w are
-        # dim 0, v: number of output channels
-        # dim 1, c: number of input channels
-        # dim 2, l: kernel size, squared
-
-        # Only add q parameter to the input norm.
-        # The weight norm is consistently large enough that it
-        # isn't needed there.
-        square_sum = torch.sum(torch.square(x), [1, 4], keepdim=True)
-        x_norm = torch.add(
-            torch.sqrt(square_sum + self.eps),
-            torch.exp(-self.q / self.q_scale).view(1, -1, 1, 1, 1))
-
-        square_sum = torch.sum(torch.square(self.w), [1, 2], keepdim=True)
-        w_norm = torch.sqrt(square_sum + self.eps)
-
-        x = torch.einsum('nchwl,vcl->nvhw', x / x_norm, self.w / w_norm)
-        sign = torch.sign(x)
-
-        x = torch.abs(x) + self.eps
-        x = x.pow((torch.exp(self.p / self.p_scale)).view(1, -1, 1, 1))
-        return sign * x
-
-
-def unfold2d(x, kernel_size:int, stride:int, padding:int):
-    x = F.pad(x, [padding]*4)
-    bs, in_c, h, w = x.size()
-    ks = kernel_size
-    strided_x = x.as_strided(
-        (bs, in_c, (h - ks) // stride + 1, (w - ks) // stride + 1, ks, ks),
-        (in_c * h * w, h * w, stride * w, stride, w, 1))
-    return strided_x
+        # Comment these lines out for vanilla cosine similarity.
+        # It's ~200x faster.
+        abs = (out.square() + 1e-6).sqrt()
+        sign = out / abs
+        p = torch.exp(self.p / self.p_scale)
+        out = abs ** p
+        out = out * sign
+        return out
