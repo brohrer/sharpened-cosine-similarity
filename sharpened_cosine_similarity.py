@@ -32,9 +32,10 @@ class SharpenedCosineSimilarity(nn.Conv2d):
         groups: int = 1,
         bias: bool = False,
         q_init: float = 10,
-        p_init: float = 1.1,
+        p_init: float = 1,
         q_scale: float = .3,
         p_scale: float = 5,
+        eps: float = 1e-6,
     ):
         if padding is None:
             if int(torch.__version__.split('.')[1]) >= 10:
@@ -61,20 +62,24 @@ class SharpenedCosineSimilarity(nn.Conv2d):
         self.q = torch.nn.Parameter(torch.full((1,), q_init * self.q_scale))
         self.p_scale = p_scale
         self.p = torch.nn.Parameter(torch.full((1,), p_init * self.p_scale))
+        self.eps = eps
 
     def forward(self, inp: torch.Tensor) -> torch.Tensor:
         out = inp.square()
         if self.groups == 1:
             out = out.sum(1, keepdim=True)
+            
+        q = F.softplus(-self.q / self.q_scale)
+
         norm = F.conv2d(
             out,
             torch.ones_like(self.weight[:1, :1]),
             None,
             self.stride,
             self.padding,
-            self.dilation) + 1e-6
+            self.dilation)
+        norm = norm + (q + self.eps)
 
-        q = torch.exp(-self.q / self.q_scale)
         weight = self.weight / (
             self.weight.square().sum(dim=(1, 2, 3), keepdim=True).sqrt() + q)
         out = F.conv2d(
@@ -88,9 +93,9 @@ class SharpenedCosineSimilarity(nn.Conv2d):
 
         # Comment these lines out for vanilla cosine similarity.
         # It's ~200x faster.
-        abs = (out.square() + 1e-6).sqrt()
-        sign = out / abs
-        p = torch.exp(self.p / self.p_scale)
+        abs = out.abs() + self.eps
+        sign = out.sign()
+        p = F.softplus(self.p / self.p_scale)
         out = abs ** p
         out = out * sign
         return out
