@@ -48,7 +48,7 @@ class SharpenedCosineSimilarity(nn.Conv2d):
         bias = False  # Disable bias for "true" SCS, add it for better performance
         assert dilation == 1, "Dilation has to be 1 to use AvgPool2d as L2-Norm backend."
         assert groups == in_channels or groups == 1, "Either depthwise or full convolution. Grouped not supported"
-        super(CosSimConv2d, self).__init__(
+        super(SharpenedCosineSimilarity, self).__init__(
             in_channels,
             out_channels,
             kernel_size,
