@@ -138,7 +138,7 @@ mnist.setup()
 steps_per_epoch = len(mnist.mnist_train) // batch_size
 model = SCSLNet(max_lr, steps_per_epoch, n_epochs)
 
-trainer = pl.Trainer(gpus=gpus, max_epochs=batch_size)
+trainer = pl.Trainer(gpus=gpus, max_epochs=n_epochs)
 trainer.fit(model, mnist)
 
 # save matplotlib figure of training and validation loss
