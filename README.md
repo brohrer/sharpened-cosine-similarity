@@ -29,7 +29,9 @@ when fully extracted.
 I run this entirely on laptop CPUs. I have a dual-core i7 that takes about 90 seconds per epoch and
 an 8-core i7 that takes about 45 seconds per epoch. Your mileage may vary.
 
-There's also a CIFAR-10 demo at `demo_cifar10.py`.
+There's also a CIFAR-10 demo at `demo_cifar10.py` and a
+PyTorch Lightning demo on Fashion MNIST at
+`demo_fashion_mnist_lightning.py`.
 
 ## Monitor
 You can check on the status of your runs at any time. In another console navigate to the smae directory
@@ -102,8 +104,8 @@ from Raphael Pisoni ([@ml_4rtemi5 on Twitter](https://twitter.com/ml_4rtemi5)).
 
 The idea behind sharpened cosine similarity first surfaced as
 [a Twitter thread](https://twitter.com/_brohrer_/status/1232063619657093120)
-in 2020. The most comprehensive history of the project is currently in
-rough form in
+in 2020. The most comprehensive history of the project and
+list of other contributions is currently in
 <a href="https://e2eml.school/scs.html">this post</a>.
 
 <img title="A sample of testing error results over several runs"
