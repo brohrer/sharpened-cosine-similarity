@@ -30,7 +30,6 @@ class SharpenedCosineSimilarity(nn.Conv2d):
         padding=None,
         dilation=1,
         groups: int = 1,
-        bias: bool = False,
         q_init: float = 10,
         p_init: float = 1.,
         q_scale: float = .3,
@@ -46,9 +45,11 @@ class SharpenedCosineSimilarity(nn.Conv2d):
         if isinstance(kernel_size, int):
             kernel_size = (kernel_size, kernel_size)
 
-        bias = False  # Disable bias for "true" SCS, add it for better performance
-        assert dilation == 1, "Dilation has to be 1 to use AvgPool2d as L2-Norm backend."
-        assert groups == in_channels or groups == 1, "Either depthwise or full convolution. Grouped not supported"
+        assert dilation == 1, \
+            "Dilation has to be 1 to use AvgPool2d as L2-Norm backend."
+        assert groups == in_channels or groups == 1, \
+            "Either depthwise or full convolution. Grouped not supported"
+
         super(SharpenedCosineSimilarity, self).__init__(
             in_channels,
             out_channels,
@@ -56,8 +57,8 @@ class SharpenedCosineSimilarity(nn.Conv2d):
             stride,
             padding,
             dilation,
-            groups,
-            bias)
+            groups)
+
         self.p_scale = p_scale
         self.q_scale = q_scale
         self.p = torch.nn.Parameter(
@@ -67,37 +68,63 @@ class SharpenedCosineSimilarity(nn.Conv2d):
         self.eps = eps
 
     def forward(self, inp: torch.Tensor) -> torch.Tensor:
+        # 1. Find the l2-norm of the inputs at each position of the kernels.
+        # 1a. Square each input element.
         out = inp.square()
+        # 1b. Sum each element over all channels
+        # if this isn't a depthwise scs layer.
         if self.groups == 1:
             out = out.sum(1, keepdim=True)
 
-        q = torch.exp(-self.q / self.q_scale)
+        # 1c. Create a mock set of kernel weights that are all ones.
+        # These will have a different shape, depending on whether this
+        # is a depthwise scs layer.
+        if self.groups == 1:
+            kernel_size_ones = torch.ones_like(self.weight[:1, :1])
+        else:
+            kernel_size_ones = torch.ones_like(self.weight)
+
+        # 1d. Sum the squared inputs over each set of kernel positions
+        # by convolving them with the mock all-ones kernel weights.
         norm = F.conv2d(
             out,
-            torch.ones_like(self.weight[:1, :1]),
-            None,
-            self.stride,
-            self.padding,
-            self.dilation)
-        norm = norm + (q + self.eps)
+            kernel_size_ones,
+            stride=self.stride,
+            padding=self.padding,
+            dilation=self.dilation,
+            groups=self.groups)
 
+        # 2. Add in the q parameter. The scaling and transforming ensure
+        # that its magnitude is appropriate and its gradient is smooth
+        # so that it will be learned well.
+        q = torch.exp(-self.q / self.q_scale)
+        norm = (norm + (q + self.eps)).sqrt()
+
+        # 3. Find the l2-norm of the weights in each kernel.
+        # 4. Normalize the kernel weights.
         weight = self.weight / (
             self.weight.square().sum(dim=(1, 2, 3), keepdim=True).sqrt())
+
+        # 5. Normalize the inputs.
+        # 6. Calculate the dot product of the normalized kernels and the
+        # normalized inputs.
         out = F.conv2d(
             inp,
             weight,
-            self.bias,
-            self.stride,
-            self.padding,
-            self.dilation,
-            self.groups) / norm.sqrt()
+            stride=self.stride,
+            padding=self.padding,
+            dilation=self.dilation,
+            groups=self.groups) / norm
 
-        # Comment these lines out for vanilla cosine similarity.
-        # It's ~200x faster.
+        # 7. Raise the result to the power p, keeping the sign of the original.
         magnitude = out.abs() + self.eps
         sign = out.sign()
-        p = torch.exp(self.p / self.p_scale)
 
+        # 7a. Like with q, the scaling and transforming of the p parameter
+        # ensure that its magnitude is appropriate and its gradient is smooth
+        # so that it will be learned well.
+        p = torch.exp(self.p / self.p_scale)
+        # 7b. Broadcast the p's so that each one gets applied to its own unit.
         out = magnitude.pow(p.view(1, -1, 1, 1))
         out = out * sign
         return out

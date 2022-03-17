@@ -6,7 +6,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.optim.lr_scheduler import ExponentialLR
+from torch.optim.lr_scheduler import OneCycleLR
+from torch.utils.data import DataLoader
 import torchvision
 import torchvision.transforms as transforms
 from tqdm import tqdm
@@ -15,16 +16,15 @@ from absolute_pooling import MaxAbsPool2d
 from sharpened_cosine_similarity import SharpenedCosineSimilarity
 
 batch_size = 64
+max_lr = .05
+n_classes = 10
 n_epochs = 100
 n_runs = 1000
-
-# The initial learning rate to kick off the exponential decay
-starting_lr = 1
-# Half-life of the learning rate decay, in epochs
-lr_halflife = 20
+n_input_channels = 1
+n_units = 16
+kernel_size = 3
 
 # Allow for a version to be provided at the command line, as in
-# $ python3 demo_fashion_mnist.py v15
 if len(sys.argv) > 1:
     version = sys.argv[1]
 else:
@@ -38,22 +38,30 @@ loss_results_path = os.path.join("results", f"loss_{version}.npy")
 os.makedirs("results", exist_ok=True)
 
 # Use standard FashionMNIST dataset
-train_set = torchvision.datasets.FashionMNIST(
+training_set = torchvision.datasets.FashionMNIST(
     root='./data/FashionMNIST',
     train=True,
     download=True,
-    transform=transforms.Compose([transforms.ToTensor()])
-)
-test_set = torchvision.datasets.FashionMNIST(
+    transform=transforms.Compose([
+        transforms.RandomCrop(28, padding=2),
+        transforms.RandomHorizontalFlip(),
+        # transforms.GaussianBlur(5, sigma=(0.01, 2.0)),
+        transforms.ToTensor(),
+    ]))
+testing_set = torchvision.datasets.FashionMNIST(
     root='./data/FashionMNIST',
     train=False,
     download=True,
-    transform=transforms.Compose([transforms.ToTensor()])
-)
-training_loader = torch.utils.data.DataLoader(
-    train_set, batch_size = batch_size)
-testing_loader = torch.utils.data.DataLoader(
-    test_set, batch_size = batch_size)
+    transform=transforms.Compose([transforms.ToTensor()]))
+
+training_loader = DataLoader(
+    training_set,
+    batch_size=batch_size,
+    shuffle=True)
+testing_loader = DataLoader(
+    testing_set,
+    batch_size=batch_size,
+    shuffle=False)
 
 
 class Network(nn.Module):
@@ -61,27 +69,68 @@ class Network(nn.Module):
         super().__init__()
 
         self.scs1 = SharpenedCosineSimilarity(
-            in_channels=1, out_channels=8, kernel_size=3, padding=0)
+            in_channels=n_input_channels,
+            out_channels=n_units,
+            kernel_size=kernel_size,
+            padding=0)
         self.pool1 = MaxAbsPool2d(kernel_size=2, stride=2, ceil_mode=True)
-        self.scs2 = SharpenedCosineSimilarity(
-            in_channels=8, out_channels=16, kernel_size=3, padding=1)
+
+        self.scs2_depth = SharpenedCosineSimilarity(
+            in_channels=n_units,
+            out_channels=n_units,
+            kernel_size=kernel_size,
+            groups=n_units,
+            padding=1)
+        self.scs2_point = SharpenedCosineSimilarity(
+            in_channels=n_units,
+            out_channels=n_units,
+            kernel_size=1)
         self.pool2 = MaxAbsPool2d(kernel_size=2, stride=2, ceil_mode=True)
-        self.scs3 = SharpenedCosineSimilarity(
-            in_channels=16, out_channels=32, kernel_size=3, padding=1)
+
+        self.scs3_depth = SharpenedCosineSimilarity(
+            in_channels=n_units,
+            out_channels=n_units,
+            kernel_size=kernel_size,
+            groups=n_units,
+            padding=1)
+        self.scs3_point = SharpenedCosineSimilarity(
+            in_channels=n_units,
+            out_channels=n_units,
+            kernel_size=1)
         self.pool3 = MaxAbsPool2d(kernel_size=2, stride=2, ceil_mode=True)
-        self.out = nn.Linear(in_features=32*4*4, out_features=10)
+
+        self.scs4_depth = SharpenedCosineSimilarity(
+            in_channels=n_units,
+            out_channels=n_units,
+            kernel_size=kernel_size,
+            groups=n_units,
+            padding=1)
+        self.scs4_point = SharpenedCosineSimilarity(
+            in_channels=n_units,
+            out_channels=n_units,
+            kernel_size=1)
+        self.pool4 = MaxAbsPool2d(kernel_size=4, stride=4, ceil_mode=True)
+
+        self.out = nn.Linear(in_features=n_units, out_features=n_classes)
+
 
     def forward(self, t):
         t = self.scs1(t)
         t = self.pool1(t)
 
-        t = self.scs2(t)
+        t = self.scs2_depth(t)
+        t = self.scs2_point(t)
         t = self.pool2(t)
 
-        t = self.scs3(t)
+        t = self.scs3_depth(t)
+        t = self.scs3_point(t)
         t = self.pool3(t)
 
-        t = t.reshape(-1, 32*4*4)
+        t = self.scs4_depth(t)
+        t = self.scs4_point(t)
+        t = self.pool4(t)
+
+        t = t.reshape(-1, n_units)
         t = self.out(t)
 
         return t
@@ -97,16 +146,29 @@ except Exception:
     accuracy_results = []
     accuracy_histories = []
 
+
 steps_per_epoch = len(training_loader)
 
 for i_run in range(n_runs):
     network = Network()
-    optimizer = optim.SGD(network.parameters(), lr=starting_lr)
-    gamma = .5 ** (1 / lr_halflife)
-    scheduler = ExponentialLR(optimizer, gamma)
+
+    for p in network.parameters():
+        if p.requires_grad:
+            print(p.numel())
+
+    n_params = sum(p.numel() for p in network.parameters() if p.requires_grad)
+    print(f"Model has {n_params:_} trainable parameters.")
+
+    optimizer = optim.Adam(network.parameters(), lr=max_lr)
+    scheduler = OneCycleLR(
+        optimizer,
+        max_lr=max_lr,
+        steps_per_epoch=steps_per_epoch,
+        epochs=n_epochs)
 
     epoch_accuracy_history = []
     for i_epoch in range(n_epochs):
+
         epoch_start_time = time.time()
         epoch_training_loss = 0
         epoch_testing_loss = 0
@@ -123,6 +185,7 @@ for i_run in range(n_runs):
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+                scheduler.step()
 
                 epoch_training_loss += loss.item() * training_loader.batch_size
                 epoch_training_num_correct += (
@@ -134,8 +197,6 @@ for i_run in range(n_runs):
                     f'Run: {i_run + 1}/{n_runs}'
                 )
 
-        scheduler.step()
-
         epoch_duration = time.time() - epoch_start_time
         training_loss = epoch_training_loss / len(training_loader.dataset)
         training_accuracy = (
@@ -143,19 +204,21 @@ for i_run in range(n_runs):
 
         # At the end of each epoch run the testing data through an
         # evaluation pass to see how the model is doing.
-        for batch in testing_loader:
-            images, labels = batch
-            preds = network(images)
-            loss = F.cross_entropy(preds, labels)
+        # Specify no_grad() to prevent a nasty out-of-memory condition.
+        with torch.no_grad():
+            for batch in testing_loader:
+                images, labels = batch
+                preds = network(images)
+                loss = F.cross_entropy(preds, labels)
 
-            epoch_testing_loss += loss.item() * testing_loader.batch_size
-            epoch_testing_num_correct += (
-                preds.argmax(dim=1).eq(labels).sum().item())
+                epoch_testing_loss += loss.item() * testing_loader.batch_size
+                epoch_testing_num_correct += (
+                    preds.argmax(dim=1).eq(labels).sum().item())
 
-        testing_loss = epoch_testing_loss / len(testing_loader.dataset)
-        testing_accuracy = (
-            epoch_testing_num_correct / len(testing_loader.dataset))
-        epoch_accuracy_history.append(testing_accuracy)
+            testing_loss = epoch_testing_loss / len(testing_loader.dataset)
+            testing_accuracy = (
+                epoch_testing_num_correct / len(testing_loader.dataset))
+            epoch_accuracy_history.append(testing_accuracy)
 
         print(
             f"run: {i_run}   "
