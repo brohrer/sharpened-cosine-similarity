@@ -1,5 +1,6 @@
 # Sharpened Cosine Similarity
-A layer implementation for PyTorch
+A layer implementation for PyTorch.
+([Here's the TensorFlow version.](https://github.com/brohrer/sharpened_cosine_similarity_tensorflow))
 
 ## Install
 At your command line:

@@ -30,8 +30,8 @@ class SharpenedCosineSimilarity(nn.Conv2d):
         padding=None,
         dilation=1,
         groups: int = 1,
-        q_init: float = 10,
-        p_init: float = 1.,
+        q_init: float = 1,
+        p_init: float = 1,
         q_scale: float = .3,
         p_scale: float = 5,
         eps: float = 1e-6,
@@ -98,7 +98,8 @@ class SharpenedCosineSimilarity(nn.Conv2d):
         # that its magnitude is appropriate and its gradient is smooth
         # so that it will be learned well.
         q = torch.exp(-self.q / self.q_scale)
-        norm = (norm + (q + self.eps)).sqrt()
+        norm = (norm + self.eps).sqrt() + q
+        # norm = (norm + (q + self.eps)).sqrt()
 
         # 3. Find the l2-norm of the weights in each kernel.
         # 4. Normalize the kernel weights.
