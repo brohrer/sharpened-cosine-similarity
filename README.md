@@ -39,7 +39,7 @@ this is somewhere around one-tenth of the parameters in previous models in this 
 
 | Date | Milestone |
 | ------------- | ------------- |
-| 2022-03-11 | [Code](https://github.com/brohrer/sharpened_cosine_similarity_torch/blob/main/demo_fashion_mnist_lightning.py) by [Phil Sodmann](https://twitter.com/PSodmann). PyTorch Lightning demo on the Fashion MNIST data. |
+| 2022-03-11 | [Code](https://github.com/brohrer/sharpened-cosine-similarity/blob/main/pytorch/demo_fashion_mnist_lightning.py) by [Phil Sodmann](https://twitter.com/PSodmann). PyTorch Lightning demo on the Fashion MNIST data. |
 | 2022-02-25 | [Experiments and analysis](https://twitter.com/_clashluke/status/1497092150906941442) by [Lucas Nestler](https://github.com/ClashLuke/) . TPU implementation of SCS. Runtime performance comparison with and without the p parameter |
 | 2022-02-24 | [Code](https://github.com/DrJohnWagner/Kaggle-Notebooks) and [analysis](https://twitter.com/DrJohnWagner/status/1496741769748180994) by [Dr. John Wagner](https://twitter.com/DrJohnWagner). Head to head comparison with convnet on American Sign Language alphabet dataset. |
 | 2022-02-22 | [Code](https://github.com/hukkelas/sharpened_cosine_similarity_torch/blob/main/sharpened_cosine_similarity.py) by [Håkon Hukkelås](https://github.com/hukkelas). Reimplementation of SCS in PyTorch with a performance boost from using Conv2D. Achieved 91.3% CIFAR-10 accuracy with a model of 1.2M parameters. |
