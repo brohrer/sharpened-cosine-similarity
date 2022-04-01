@@ -1,9 +1,18 @@
 # Sharpened Cosine Similarity
 An alternative to convolution for neural networks
 
-One day there will be a comprehensive post and paper describing sharpened cosine similarity (SCS), but today is not that day. 
+## Implementations
+
+[PyTorch](https://github.com/brohrer/sharpened-cosine-similarity/tree/main/pytorch)
+
+[TensorFlow](https://github.com/brohrer/sharpened-cosine-similarity/tree/main/tensorflow)
+
+[Jax](https://github.com/brohrer/sharpened-cosine-similarity/tree/main/jax)
+
 
 ## Background
+
+One day there will be a comprehensive post and paper describing sharpened cosine similarity (SCS), but today is not that day. 
 
 The idea behind sharpened cosine similarity first surfaced as
 [a Twitter thread](https://twitter.com/_brohrer_/status/1232063619657093120)
