@@ -3,7 +3,11 @@ An alternative to convolution for neural networks
 
 One day there will be a comprehensive post and paper describing sharpened cosine similarity (SCS), but today is not that day. 
 
+## Background
 
+The idea behind sharpened cosine similarity first surfaced as
+[a Twitter thread](https://twitter.com/_brohrer_/status/1232063619657093120)
+in 2020. There's some more development in this [blog post](https://www.rpisoni.dev/posts/cossim-convolution-part2/). 
 
 ## Tips and Tricks
 
@@ -19,18 +23,6 @@ in this [parameter efficiency leaderboard](https://github.com/brohrer/parameter_
 * Raising activities to the power p generally doesn't parallelize well on GPUs and TPUs. It will slow your code down a LOT compared to straight convolutions.
 * Disabling the p parameters results in a huge speedup on GPUs, but this takes the "sharpened" out of SCS. Regular old cosine similarity is cool, but it is its own thing with its own limitations.
 
-
-## Background
-
-The idea behind sharpened cosine similarity first surfaced as
-[a Twitter thread](https://twitter.com/_brohrer_/status/1232063619657093120)
-in 2020. The most comprehensive history of the project and
-list of other contributions is currently in
-<a href="https://e2eml.school/scs.html">this post</a>.
-
-<img title="A sample of testing error results over several runs"
-  src="images/scs_tweet.png" width=500 align=center>
-  
 ## Examples
 In the age of gargantuan language models, it's uncommon to talk about how *few* parameters a model uses,
 but it matters when you hope to deploy on compute- or power-limited devices. Sharpened cosine similarity
@@ -38,8 +30,8 @@ is exceptionally parameter efficient.
 
 The repository <a href="https://github.com/brohrer/scs_torch_gallery">scs_torch_gallery</a>
 has a handful of working examples.
-[`model_cifar10_18_4.py`](model_cifar10_18_4.py) is an image
-classification model that gets 18.4% error on CIFAR 10, using only 68k parameters.
+[`cifar10_80_25214.py`](https://github.com/brohrer/scs-gallery/blob/main/cifar10_80_25214.py) is an image
+classification model that gets 80% accuracy on CIFAR 10, using only 25.2k parameters.
 According to the [CIFAR-10 Papers With Code](https://paperswithcode.com/sota/image-classification-on-cifar-10?dimension=PARAMS)
 this is somewhere around one-tenth of the parameters in previous models in this accuracy range.
 
