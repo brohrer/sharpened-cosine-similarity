@@ -5,7 +5,7 @@ A layer implementation for PyTorch.
 At your command line:
 
 ```bash
-git clone https://github.com/brohrer/sharpened_cosine_similarity_torch.git
+git clone https://github.com/brohrer/sharpened_cosine_similarity.git
 ```
 You'll need to install or upgrade PyTorch if you haven't already.
 If `python3` is the command you use to invoke Python at your command line:
@@ -18,7 +18,7 @@ python3 -m pip install torch torchvision --upgrade
 Run the Fashion MNIST demo to see sharpened cosine similarity in action.
 
 ```bash
-cd sharpened_cosine_similarity_torch
+cd sharpened_cosine_similarity/pytorch
 python3 demo_fashion_mnist.py
 ```
 
