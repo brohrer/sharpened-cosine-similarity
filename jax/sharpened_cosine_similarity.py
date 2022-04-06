@@ -1,3 +1,7 @@
+"""
+Based entirely on Raphael Pisoni's original implementation
+https://colab.research.google.com/drive/1KUKFEMneQMS3OzPYnWZGkEnry3PdzCfn#scrollTo=sqs64Hv2HtPZ&line=37&uniqifier=1
+"""
 from flax import linen as nn
 import jax
 import jax.numpy as jnp
