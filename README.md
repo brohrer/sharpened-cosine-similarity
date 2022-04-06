@@ -5,7 +5,7 @@ An alternative to convolution for neural networks
 
 [PyTorch](https://github.com/brohrer/sharpened-cosine-similarity/tree/main/pytorch)
 
-[TensorFlow](https://github.com/brohrer/sharpened-cosine-similarity/tree/main/tensorflow)
+[Keras](https://github.com/brohrer/sharpened-cosine-similarity/tree/main/keras)
 
 [Jax](https://github.com/brohrer/sharpened-cosine-similarity/tree/main/jax)
 
@@ -48,6 +48,7 @@ this is somewhere around one-tenth of the parameters in previous models in this 
 
 | Date | Milestone |
 | ------------- | ------------- |
+| 2022-03-28 | [Code]( https://colab.research.google.com/drive/1KUKFEMneQMS3OzPYnWZGkEnry3PdzCfn?usp=sharing) by [Raphael Pisoni]( https://twitter.com/ml_4rtemi5/status/1508341568188649474?s=20&t=YdSrNvUI-zqmaB83nwk42Q). Jax implementation. |
 | 2022-03-11 | [Code](https://github.com/brohrer/sharpened-cosine-similarity/blob/main/pytorch/demo_fashion_mnist_lightning.py) by [Phil Sodmann](https://twitter.com/PSodmann). PyTorch Lightning demo on the Fashion MNIST data. |
 | 2022-02-25 | [Experiments and analysis](https://twitter.com/_clashluke/status/1497092150906941442) by [Lucas Nestler](https://github.com/ClashLuke/) . TPU implementation of SCS. Runtime performance comparison with and without the p parameter |
 | 2022-02-24 | [Code](https://github.com/DrJohnWagner/Kaggle-Notebooks) by [Dr. John Wagner](https://twitter.com/DrJohnWagner). Head to head comparison with convnet on American Sign Language alphabet dataset. |

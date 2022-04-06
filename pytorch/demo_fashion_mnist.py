@@ -13,15 +13,16 @@ import torchvision.transforms as transforms
 from tqdm import tqdm
 
 from absolute_pooling import MaxAbsPool2d
-from sharpened_cosine_similarity import SharpenedCosineSimilarity
+from sharpened_cosine_similarity import SharpCosSim2d
 
 batch_size = 64
-max_lr = .05
+max_lr = .01
 n_classes = 10
 n_epochs = 100
-n_runs = 1000
+n_runs = 10
 n_input_channels = 1
-n_units = 16
+n_kernels_in = 27
+n_kernels = 18
 kernel_size = 3
 
 # Allow for a version to be provided at the command line, as in
@@ -45,7 +46,6 @@ training_set = torchvision.datasets.FashionMNIST(
     transform=transforms.Compose([
         transforms.RandomCrop(28, padding=2),
         transforms.RandomHorizontalFlip(),
-        # transforms.GaussianBlur(5, sigma=(0.01, 2.0)),
         transforms.ToTensor(),
     ]))
 testing_set = torchvision.datasets.FashionMNIST(
@@ -68,50 +68,36 @@ class Network(nn.Module):
     def __init__(self):
         super().__init__()
 
-        self.scs1 = SharpenedCosineSimilarity(
-            in_channels=n_input_channels,
-            out_channels=n_units,
+        self.scs1 = SharpCosSim2d(
+            n_channels_in=n_input_channels,
+            n_kernels=n_kernels_in,
             kernel_size=kernel_size,
-            padding=0)
-        self.pool1 = MaxAbsPool2d(kernel_size=2, stride=2, ceil_mode=True)
-
-        self.scs2_depth = SharpenedCosineSimilarity(
-            in_channels=n_units,
-            out_channels=n_units,
-            kernel_size=kernel_size,
-            groups=n_units,
             padding=1)
-        self.scs2_point = SharpenedCosineSimilarity(
-            in_channels=n_units,
-            out_channels=n_units,
-            kernel_size=1)
-        self.pool2 = MaxAbsPool2d(kernel_size=2, stride=2, ceil_mode=True)
+        self.pool1 = MaxAbsPool2d(kernel_size=2, stride=2)
 
-        self.scs3_depth = SharpenedCosineSimilarity(
-            in_channels=n_units,
-            out_channels=n_units,
+        self.scs2_depth = SharpCosSim2d(
+            n_channels_in=n_kernels_in,
+            n_kernels=n_kernels_in,
             kernel_size=kernel_size,
-            groups=n_units,
-            padding=1)
-        self.scs3_point = SharpenedCosineSimilarity(
-            in_channels=n_units,
-            out_channels=n_units,
+            depthwise=True)
+        self.scs2_point = SharpCosSim2d(
+            n_channels_in=n_kernels_in,
+            n_kernels=n_kernels,
             kernel_size=1)
-        self.pool3 = MaxAbsPool2d(kernel_size=2, stride=2, ceil_mode=True)
+        self.pool2 = MaxAbsPool2d(kernel_size=2, stride=2)
 
-        self.scs4_depth = SharpenedCosineSimilarity(
-            in_channels=n_units,
-            out_channels=n_units,
+        self.scs3_depth = SharpCosSim2d(
+            n_channels_in=n_kernels,
+            n_kernels=n_kernels,
             kernel_size=kernel_size,
-            groups=n_units,
-            padding=1)
-        self.scs4_point = SharpenedCosineSimilarity(
-            in_channels=n_units,
-            out_channels=n_units,
+            depthwise=True)
+        self.scs3_point = SharpCosSim2d(
+            n_channels_in=n_kernels,
+            n_kernels=n_kernels,
             kernel_size=1)
-        self.pool4 = MaxAbsPool2d(kernel_size=4, stride=4, ceil_mode=True)
+        self.pool3 = MaxAbsPool2d(kernel_size=4, stride=4)
 
-        self.out = nn.Linear(in_features=n_units, out_features=n_classes)
+        self.out = nn.Linear(in_features=n_kernels, out_features=n_classes)
 
 
     def forward(self, t):
@@ -126,11 +112,7 @@ class Network(nn.Module):
         t = self.scs3_point(t)
         t = self.pool3(t)
 
-        t = self.scs4_depth(t)
-        t = self.scs4_point(t)
-        t = self.pool4(t)
-
-        t = t.reshape(-1, n_units)
+        t = t.reshape(-1, n_kernels)
         t = self.out(t)
 
         return t

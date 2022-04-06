@@ -6,20 +6,20 @@ import tensorflow.keras.layers as layers
 class CosSim2D(layers.Layer):
     def __init__(
         self,
+        n_kernels,
         kernel_size=3,
-        n_units=32,
-        stride=1,
-        depthwise_separable=False,
-        padding='valid',
-        q_init: float = 10,
-        p_init: float = 1.,
-        q_scale: float = .3,
-        p_scale: float = 5,
-        eps: float = 1e-6,
+        padding: int=0,
+        stride: int=1,
+        depthwise_separable: bool=False,
+        p_init: float=.7,
+        q_init: float=1.,
+        p_scale: float=5.,
+        q_scale: float=.3,
+        eps: float=1e-6,
     ):
         super(CosSim2D, self).__init__()
         self.depthwise_separable = depthwise_separable
-        self.n_units = n_units
+        self.n_kernels = n_kernels
         assert kernel_size in [1, 3, 5], "kernel of this size not supported"
         self.kernel_size = kernel_size
         if self.kernel_size == 1:
@@ -29,14 +29,6 @@ class CosSim2D(layers.Layer):
         elif self.kernel_size == 5:
             self.stack = self.stack5x5
         self.stride = stride
-        if padding == 'same':
-            self.pad = self.kernel_size // 2
-            self.pad_1 = 1
-            self.clip = 0
-        elif padding == 'valid':
-            self.pad = 0
-            self.pad_1 = 0
-            self.clip = self.kernel_size // 2
         self.p_init= p_init
         self.q_init= q_init
         self.p_scale = p_scale
@@ -52,26 +44,26 @@ class CosSim2D(layers.Layer):
 
         if self.depthwise_separable:
             self.w = self.add_weight(
-                shape=(1, tf.square(self.kernel_size), self.n_units),
+                shape=(1, tf.square(self.kernel_size), self.n_kernels),
                 initializer="glorot_uniform", name='w',
                 trainable=True,
             )
         else:
             self.w = self.add_weight(
-                shape=(1, self.channels * tf.square(self.kernel_size), self.n_units),
+                shape=(1, self.channels * tf.square(self.kernel_size), self.n_kernels),
                 initializer="glorot_uniform", name='w',
                 trainable=True,
             )
 
         # self.b = self.add_weight(
-        #     shape=(self.n_units,), initializer="zeros", trainable=True, name='b')
+        #     shape=(self.n_kernels,), initializer="zeros", trainable=True, name='b')
 
         p_initializer = tf.keras.initializers.Constant(
             value=float(self.p_init * self.p_scale))
         q_initializer = tf.keras.initializers.Constant(
             value=float(self.q_init * self.q_scale))
         self.p = self.add_weight(
-            shape=(self.n_units,),
+            shape=(self.n_kernels,),
             initializer=p_initializer,
             trainable=True,
             name='p')
@@ -165,7 +157,7 @@ class CosSim2D(layers.Layer):
         x = tf.abs(x) + self.eps
         x = tf.pow(x, self.p)
         x = sign * x
-        x = tf.reshape(x, (-1, self.out_y, self.out_x, self.n_units))
+        x = tf.reshape(x, (-1, self.out_y, self.out_x, self.n_kernels))
         return x
 
     @tf.function
@@ -175,7 +167,7 @@ class CosSim2D(layers.Layer):
             x = tf.vectorized_map(self.call_body, tf.expand_dims(tf.transpose(inputs, (3,0,1,2)), axis=-1))
             s = tf.shape(x)
             x = tf.transpose(x, (1,2,3,4,0))
-            x = tf.reshape(x, (-1, self.out_y, self.out_x, self.channels * self.n_units))
+            x = tf.reshape(x, (-1, self.out_y, self.out_x, self.channels * self.n_kernels))
             return x
         else:
             x = self.call_body(inputs)
