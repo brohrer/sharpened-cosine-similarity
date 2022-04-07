@@ -36,15 +36,15 @@ class SharpCosSim2d(nn.Conv2d):
 
         # Create a mock set of kernel weights that are all ones.
         if self.groups == 1:
-            self.kernel_size_ones = torch.ones_like(self.weights[:1, :1, :, :])
+            self.kernel_size_ones = torch.ones_like(self.weight[:1, :1, :, :])
         else:
-            self.kernel_size_ones = torch.ones_like(self.weights)
+            self.kernel_size_ones = torch.ones_like(self.weight)
 
         # Initialize the weights so that each kernel starts with
         # an l2-norm of 1.
-        normalized_weights = self.weights / (
-            self.weights.square().sum(dim=(1, 2, 3), keepdim=True).sqrt())
-        self.weights = torch.nn.Parameter(normalized_weights)
+        normalized_weights = self.weight / (
+            self.weight.square().sum(dim=(1, 2, 3), keepdim=True).sqrt())
+        self.weight = torch.nn.Parameter(normalized_weights)
 
         self.p_scale = p_scale
         self.q_scale = q_scale
@@ -81,15 +81,15 @@ class SharpCosSim2d(nn.Conv2d):
 
         # 3. Find the l2-norm of the weights in each kernel and
         # 4. Normalize the kernel weights.
-        weights = self.weights / (
-            self.weights.square().sum(dim=(1, 2, 3), keepdim=True).sqrt())
+        weights = self.weight / (
+            self.weight.square().sum(dim=(1, 2, 3), keepdim=True).sqrt())
 
         # 5. Normalize the inputs and
         # 6. Calculate the dot product of the normalized kernels and the
         # normalized inputs.
         out = F.conv2d(
             inp,
-            weights,
+            weight,
             stride=self.stride,
             padding=self.padding,
             groups=self.groups) / norm
