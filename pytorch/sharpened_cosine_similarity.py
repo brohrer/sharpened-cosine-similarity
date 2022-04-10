@@ -39,9 +39,9 @@ class SharpCosSim2d(nn.Conv2d):
 
         # Create a mock set of kernel weights that are all ones.
         if self.groups == 1:
-            self.kernel_size_ones = torch.ones_like(self.weight[:1, :1, :, :])
+            self.register_buffer('kernel_size_ones', torch.ones_like(self.weight[:1, :1, :, :]))
         else:
-            self.kernel_size_ones = torch.ones_like(self.weight)
+            self.register_buffer('kernel_size_ones', torch.ones_like(self.weight))
 
         # Initialize the weights so that each kernel starts with
         # an l2-norm of 1.
