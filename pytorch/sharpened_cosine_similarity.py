@@ -19,7 +19,8 @@ class SharpCosSim2d(nn.Conv2d):
         p_scale: float=5.,
         q_scale: float=.3,
         eps: float=1e-6,
-        alpha: Optional[float] = None
+        alpha: Optional[float] = None,
+        autoinit: bool = True
     ):
         kernel_size = (kernel_size, kernel_size)
 
@@ -60,6 +61,21 @@ class SharpCosSim2d(nn.Conv2d):
                                         float(alpha)))
         else:
             self.a = None
+        if autoinit and (alpha is not None):
+            self.LSUV_like_init()
+        return
+
+    def LSUV_like_init(self):
+        BS, CH, H, W = 32, int(self.weight.shape[1]*self.groups), self.weight.shape[2], self.weight.shape[3]
+        device = self.weight.device
+        eps = 1e-8
+        inp = torch.rand(BS, CH, H, W, device=device)
+        with torch.no_grad():
+            out = self.forward(inp)
+            coef = out.std(dim=(0, 2, 3)) + eps
+            self.a.data *= 1.0 / coef.view_as(self.a)
+        #print ("Autoinit done")
+        return
 
     def forward(self, inp: torch.Tensor) -> torch.Tensor:
         # 1. Find the l2-norm of the inputs at each position of the kernels.
