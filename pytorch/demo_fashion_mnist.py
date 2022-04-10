@@ -24,6 +24,7 @@ n_input_channels = 1
 n_kernels_in = 27
 n_kernels = 18
 kernel_size = 3
+alpha = 1.0
 
 # Allow for a version to be provided at the command line, as in
 if len(sys.argv) > 1:
@@ -71,29 +72,29 @@ class Network(nn.Module):
         self.scs1 = SharpCosSim2d(
             n_channels_in=n_input_channels,
             n_kernels=n_kernels_in,
-            kernel_size=kernel_size,
+            kernel_size=kernel_size,alpha=alpha,
             padding=1)
         self.pool1 = MaxAbsPool2d(kernel_size=2, stride=2)
 
         self.scs2_depth = SharpCosSim2d(
             n_channels_in=n_kernels_in,
             n_kernels=n_kernels_in,
-            kernel_size=kernel_size,
+            kernel_size=kernel_size,alpha=alpha,
             depthwise=True)
         self.scs2_point = SharpCosSim2d(
             n_channels_in=n_kernels_in,
-            n_kernels=n_kernels,
+            n_kernels=n_kernels,alpha=alpha,
             kernel_size=1)
         self.pool2 = MaxAbsPool2d(kernel_size=2, stride=2)
 
         self.scs3_depth = SharpCosSim2d(
             n_channels_in=n_kernels,
             n_kernels=n_kernels,
-            kernel_size=kernel_size,
+            kernel_size=kernel_size,alpha=alpha,
             depthwise=True)
         self.scs3_point = SharpCosSim2d(
             n_channels_in=n_kernels,
-            n_kernels=n_kernels,
+            n_kernels=n_kernels,alpha=alpha,
             kernel_size=1)
         self.pool3 = MaxAbsPool2d(kernel_size=4, stride=4)
 

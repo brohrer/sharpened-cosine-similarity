@@ -1,3 +1,4 @@
+from typing import Optional
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -18,6 +19,7 @@ class SharpCosSim2d(nn.Conv2d):
         p_scale: float=5.,
         q_scale: float=.3,
         eps: float=1e-6,
+        alpha: Optional[float] = None
     ):
         kernel_size = (kernel_size, kernel_size)
 
@@ -53,6 +55,11 @@ class SharpCosSim2d(nn.Conv2d):
         self.q = torch.nn.Parameter(
             torch.full((1,), float(q_init * self.q_scale)))
         self.eps = eps
+        if alpha is not None:
+            self.a = torch.nn.Parameter(torch.full((n_kernels,),
+                                        float(alpha)))
+        else:
+            self.a = None
 
     def forward(self, inp: torch.Tensor) -> torch.Tensor:
         # 1. Find the l2-norm of the inputs at each position of the kernels.
@@ -81,7 +88,7 @@ class SharpCosSim2d(nn.Conv2d):
 
         # 3. Find the l2-norm of the weights in each kernel and
         # 4. Normalize the kernel weights.
-        weights = self.weight / (
+        weight = self.weight / (
             self.weight.square().sum(dim=(1, 2, 3), keepdim=True).sqrt())
 
         # 5. Normalize the inputs and
@@ -107,6 +114,10 @@ class SharpCosSim2d(nn.Conv2d):
         out = magnitude.pow(p.view(1, -1, 1, 1))
 
         out = out * sign
+
+        # 8. learned scale parameter
+        if self.a is not None:
+            out = self.a.view(1, -1, 1, 1) * out
         return out
 
 
