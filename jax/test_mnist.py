@@ -15,7 +15,7 @@ from sharpened_cosine_similarity import SCS, MaxAbsPool
 config = ml_collections.ConfigDict()
 config.learning_rate = 0.03
 config.batch_size = 64
-config.num_epochs = 2  # 100
+config.num_epochs = 100
 config.warmup_epochs = 3
 
 
@@ -27,16 +27,16 @@ class SCSNN(nn.Module):
             # pad to avoid the pooling to leave an uneven image shape
             [[0,0], [1,1], [1,1], [0,0]],
             mode='constant',
-            constant_values=255)
-        x = nn.Dropout(rate=0.07)(x, deterministic=not train)
+            constant_values=0)
+        # x = nn.Dropout(rate=0.07)(x, deterministic=not train)
         x = SCS(channels_in=1, features=10, kernel_size=3)(x)
         x = SCS(channels_in=10, features=10, kernel_size=1)(x)
         x = SCS(channels_in=10, features=12, kernel_size=1)(x)
-        x = nn.Dropout(rate=0.07)(x, deterministic=not train)
+        # x = nn.Dropout(rate=0.07)(x, deterministic=not train)
         x = MaxAbsPool()(x)
         x = SCS(channels_in=12, features=2, kernel_size=3, depthwise=True)(x)
         x = SCS(channels_in=24, features=8, kernel_size=1)(x)
-        x = nn.Dropout(rate=0.07)(x, deterministic=not train)
+        # x = nn.Dropout(rate=0.07)(x, deterministic=not train)
         x = MaxAbsPool()(x)
         x = SCS(
             channels_in=8,
@@ -45,8 +45,8 @@ class SCSNN(nn.Module):
             depthwise=True,
             shared_weights=False)(x)
         x = SCS(channels_in=32, features=10, kernel_size=1)(x)
-        x = nn.Dropout(rate=0.07)(x, deterministic=not train)
-        x = MaxAbsPool()(x)
+        # x = nn.Dropout(rate=0.07)(x, deterministic=not train)
+        x = MaxAbsPool(window_shape=(4, 4), strides=(4, 4))(x)
         x = x.reshape((x.shape[0], -1))   # flatten
         x = nn.Dense(features=10)(x)
         return x

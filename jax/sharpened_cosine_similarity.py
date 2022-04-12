@@ -9,7 +9,6 @@ class SharpCosSim2d(nn.Module):
     kernel_size: int
     stride: int = 1
     padding: str = "VALID"
-    # dilation: int = 1
     # groups: int = 1
     depthwise: bool = False
     shared_weights: bool = True
@@ -58,7 +57,6 @@ class SharpCosSim2d(nn.Module):
             'p',
             (lambda k, s: jnp.full(s, self.p_init)),
             (1, self.features, 1, 1))
-            # (1, self.features * self.groups, 1, 1))
         self.q = self.param(
             'q',
             (lambda k, s: jnp.full(s, self.q_init)),
