@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Optional
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -19,6 +20,8 @@ class SharpCosSim2d(nn.Conv2d):
         log_q_init: float=1.,
         log_p_scale: float=5.,
         log_q_scale: float=.3,
+        alpha: Optional[float] = None,
+        autoinit: bool = True,
         eps: float=1e-6,
     ):
         assert groups == 1 or groups == in_channels, " ".join([
@@ -85,6 +88,25 @@ class SharpCosSim2d(nn.Conv2d):
             (1, 1, 1, 1), float(log_q_init * self.log_q_scale)))
         self.eps = eps
 
+        if alpha is not None:
+            self.a = torch.nn.Parameter(torch.full((n_kernels,),
+                                        float(alpha)))
+        else:
+            self.a = None
+        if autoinit and (alpha is not None):
+            self.LSUV_like_init()
+
+    def LSUV_like_init(self):
+        BS, CH, H, W = 32, int(self.weight.shape[1]*self.groups), self.weight.shape[2], self.weight.shape[3]
+        device = self.weight.device
+        eps = 1e-8
+        inp = torch.rand(BS, CH, H, W, device=device)
+        with torch.no_grad():
+            out = self.forward(inp)
+            coef = out.std(dim=(0, 2, 3)) + eps
+            self.a.data *= 1.0 / coef.view_as(self.a)
+        return
+
     def forward(self, inp: torch.Tensor) -> torch.Tensor:
         # Scale and transform the p and q parameters
         # to ensure that their magnitudes are appropriate
@@ -104,12 +126,7 @@ class SharpCosSim2d(nn.Conv2d):
 
     def scs(self, inp, weight, p, q):
         # Normalize the kernel weights.
-        print()
-        print("weight before", weight.shape)
-        print("weight norm", self.weight_norm(weight).shape)
         weight = weight / self.weight_norm(weight)
-        print("weight after", weight.shape)
-        print("weight norm after", self.weight_norm(weight))
 
         # Normalize the inputs and
         # Calculate the dot product of the normalized kernels and the
@@ -123,7 +140,12 @@ class SharpCosSim2d(nn.Conv2d):
         ) / self.input_norm(inp, q)
 
         # Raise the result to the power p, keeping the sign of the original.
-        return cos_sim.sign() * (cos_sim.abs() + self.eps) ** p
+        out = cos_sim.sign() * (cos_sim.abs() + self.eps) ** p
+
+        # Apply learned scale parameter
+        if self.a is not None:
+            out = self.a.view(1, -1, 1, 1) * out
+        return out
 
     def weight_norm(self, weight):
         # Find the l2-norm of the weights in each kernel.
