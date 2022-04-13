@@ -104,7 +104,12 @@ class SharpCosSim2d(nn.Conv2d):
 
     def scs(self, inp, weight, p, q):
         # Normalize the kernel weights.
+        print()
+        print("weight before", weight.shape)
+        print("weight norm", self.weight_norm(weight).shape)
         weight = weight / self.weight_norm(weight)
+        print("weight after", weight.shape)
+        print("weight norm after", self.weight_norm(weight))
 
         # Normalize the inputs and
         # Calculate the dot product of the normalized kernels and the
