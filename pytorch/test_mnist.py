@@ -17,6 +17,7 @@ from sharpened_cosine_similarity import SharpCosSim2d
 batch_size = 100
 learning_rate = .03
 n_epochs = 3
+alpha = 1
 
 training_set = torchvision.datasets.MNIST(
     root='./data/MNIST',
@@ -40,18 +41,18 @@ testing_loader = DataLoader(
 
 
 network = nn.Sequential(
-    SharpCosSim2d(in_channels=1, out_channels=10, kernel_size=3, padding=1),
+    SharpCosSim2d(in_channels=1, out_channels=10, kernel_size=3, padding=1, alpha=alpha),
     MaxAbsPool2d(kernel_size=2, stride=2),
-    SharpCosSim2d(in_channels=10, out_channels=20, kernel_size=3, groups=10),
-    SharpCosSim2d(in_channels=20, out_channels=8, kernel_size=1),
+    SharpCosSim2d(in_channels=10, out_channels=20, kernel_size=3, groups=10, alpha=alpha),
+    SharpCosSim2d(in_channels=20, out_channels=8, kernel_size=1, alpha=alpha),
     MaxAbsPool2d(kernel_size=2, stride=2),
     SharpCosSim2d(
         in_channels=8,
         out_channels=32,
         kernel_size=3,
         groups=8,
-        shared_weights=False),
-    SharpCosSim2d(in_channels=32, out_channels=10, kernel_size=1),
+        shared_weights=False, alpha=alpha),
+    SharpCosSim2d(in_channels=32, out_channels=10, kernel_size=1, alpha=alpha),
     MaxAbsPool2d(kernel_size=4, stride=4),
     nn.Flatten(start_dim=1),
     nn.Linear(in_features=10, out_features=10)

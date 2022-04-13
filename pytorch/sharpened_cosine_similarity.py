@@ -89,22 +89,22 @@ class SharpCosSim2d(nn.Conv2d):
         self.eps = eps
 
         if alpha is not None:
-            self.a = torch.nn.Parameter(torch.full((n_kernels,),
+            self.alpha = torch.nn.Parameter(torch.full((self.out_channels,),
                                         float(alpha)))
         else:
-            self.a = None
+            self.alpha = None
         if autoinit and (alpha is not None):
             self.LSUV_like_init()
 
     def LSUV_like_init(self):
-        BS, CH, H, W = 32, int(self.weight.shape[1]*self.groups), self.weight.shape[2], self.weight.shape[3]
+        BS, CH = 32, int(self.weight.shape[1]*self.groups)
+        H, W = self.weight.shape[2], self.weight.shape[3]
         device = self.weight.device
-        eps = 1e-8
         inp = torch.rand(BS, CH, H, W, device=device)
         with torch.no_grad():
             out = self.forward(inp)
-            coef = out.std(dim=(0, 2, 3)) + eps
-            self.a.data *= 1.0 / coef.view_as(self.a)
+            coef = out.std(dim=(0, 2, 3)) + self.eps
+            self.alpha.data *= 1.0 / coef.view_as(self.alpha)
         return
 
     def forward(self, inp: torch.Tensor) -> torch.Tensor:
@@ -143,8 +143,8 @@ class SharpCosSim2d(nn.Conv2d):
         out = cos_sim.sign() * (cos_sim.abs() + self.eps) ** p
 
         # Apply learned scale parameter
-        if self.a is not None:
-            out = self.a.view(1, -1, 1, 1) * out
+        if self.alpha is not None:
+            out = self.alpha.view(1, -1, 1, 1) * out
         return out
 
     def weight_norm(self, weight):
