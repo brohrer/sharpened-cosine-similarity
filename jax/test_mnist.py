@@ -27,18 +27,18 @@ class SCSNN(nn.Module):
             [[0,0], [1,1], [1,1], [0,0]],
             mode='constant',
             constant_values=0)
-        x = SCS(channels_in=1, features=10, kernel_size=3)(x)
+        x = SCS(lhs=1, rhs=10, kernel_size=3)(x)
         x = MaxAbsPool()(x)
-        x = SCS(channels_in=10, features=20, kernel_size=3, groups=10)(x)
-        x = SCS(channels_in=20, features=8, kernel_size=1)(x)
+        x = SCS(lhs=10, rhs=20, kernel_size=3, groups=10)(x)
+        x = SCS(lhs=20, rhs=8, kernel_size=1)(x)
         x = MaxAbsPool()(x)
         x = SCS(
-            channels_in=8,
-            features=32,
+            lhs=8,
+            rhs=32,
             kernel_size=3,
             groups=8,
             shared_weights=False)(x)
-        x = SCS(channels_in=32, features=10, kernel_size=1)(x)
+        x = SCS(lhs=32, rhs=10, kernel_size=1)(x)
         x = MaxAbsPool(window_shape=(4, 4), strides=(4, 4))(x)
         x = x.reshape((x.shape[0], -1))   # flatten
         x = nn.Dense(features=10)(x)

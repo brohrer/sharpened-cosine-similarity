@@ -8,32 +8,32 @@ import jax.numpy as jnp
 
 
 class SharpCosSim2d(nn.Module):
-    channels_in: int
-    features: int
+    lhs: int
+    rhs: int
     kernel_size: int
     stride: int = 1
     padding: str = "VALID"
     groups: int = 1
     shared_weights: bool = True
     shuffle: bool = False
-    p_init: float = 1.
-    q_init: float = 10.
-    p_scale: float = 5.
-    q_scale: float = .3
+    log_p_init: float = 1.
+    log_q_init: float = 10.
+    log_p_scale: float = 5.
+    log_q_scale: float = .3
     eps: float = 1e-6
 
     def setup(self):
-        assert self.groups == 1 or self.groups == self.channels_in, " ".join([
-            "'groups' needs to be 1 or 'channels_in'",
-            f"({self.channels_in})."])
-        assert self.features % self.groups == 0, " ".join([
+        assert self.groups == 1 or self.groups == self.lhs, " ".join([
+            "'groups' needs to be 1 or 'lhs'",
+            f"({self.lhs})."])
+        assert self.rhs % self.groups == 0, " ".join([
             "    When not using shared weights, the number of",
-            "features needs to be a multiple of the number",
+            "rhs needs to be a multiple of the number",
             "of input channels.\n    Here there are",
-            f"{self.features} features and {self.channels_in}",
+            f"{self.rhs} rhs and {self.lhs}",
             "input channels."])
 
-        if self.groups == self.channels_in:
+        if self.groups == self.lhs:
             self.sharing = self.shared_weights
         else:
             self.sharing = False
@@ -43,12 +43,12 @@ class SharpCosSim2d(nn.Module):
         # the forward pass anyway, this prevents any numerical
         # or gradient weirdness that might result from large amounts of
         # rescaling.
-        self.channels_per_kernel = self.channels_in // self.groups
+        self.channels_per_kernel = self.lhs // self.groups
         weights_per_kernel = self.channels_per_kernel * self.kernel_size ** 2
         if self.shared_weights:
-            self.n_kernels = self.features // self.groups
+            self.n_kernels = self.rhs // self.groups
         else:
-            self.n_kernels = self.features
+            self.n_kernels = self.rhs
         initialization_scale = (3 / weights_per_kernel) ** .5
         self.w = self.param(
             'w',
@@ -63,17 +63,17 @@ class SharpCosSim2d(nn.Module):
 
         self.p = self.param(
             'p',
-            (lambda k, s: jnp.full(s, self.p_init)),
+            (lambda k, s: jnp.full(s, self.log_p_init)),
             (1, self.n_kernels, 1, 1))
         self.q = self.param(
             'q',
-            (lambda k, s: jnp.full(s, self.q_init)),
+            (lambda k, s: jnp.full(s, self.log_q_init)),
             (1, 1, 1, 1))
 
     def __call__(self, inputs):
         x = jnp.transpose(inputs, [0,3,1,2])
-        p = jnp.exp(self.p / self.p_scale)
-        q = jnp.exp(-self.q / self.q_scale)
+        p = jnp.exp(self.p / self.log_p_scale)
+        q = jnp.exp(-self.q / self.log_q_scale)
 
         if self.sharing:
             w = jnp.tile(self.w, (self.groups, 1, 1, 1))
@@ -104,11 +104,11 @@ class SharpCosSim2d(nn.Module):
         if self.shuffle:
             y = jnp.reshape(
                 y,
-                (-1, self.groups, self.features, y.shape[-2], y.shape[-1]))
+                (-1, self.groups, self.rhs, y.shape[-2], y.shape[-1]))
             y = jnp.transpose(y, axes=(0, 2, 1, 3, 4))
             y = jnp.reshape(
                 y,
-                (-1, self.groups * self.features, y.shape[-2], y.shape[-1]))
+                (-1, self.groups * self.rhs, y.shape[-2], y.shape[-1]))
 
         return y
 
@@ -127,7 +127,7 @@ class SharpCosSim2d(nn.Module):
         # Has the shape [batch, group, input_height, input_width]
 
         xnorm = jnp.sqrt(xsqsum + self.eps) + q
-        outputs_per_group =  self.features // self.groups
+        outputs_per_group =  self.rhs // self.groups
         return jnp.repeat(xnorm, outputs_per_group, axis=1)
 
 

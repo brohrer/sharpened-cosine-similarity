@@ -40,18 +40,18 @@ testing_loader = DataLoader(
 
 
 network = nn.Sequential(
-    SharpCosSim2d(channels_in=1, features=10, kernel_size=3, padding=1),
+    SharpCosSim2d(in_channels=1, out_channels=10, kernel_size=3, padding=1),
     MaxAbsPool2d(kernel_size=2, stride=2),
-    SharpCosSim2d(channels_in=10, features=20, kernel_size=3, groups=10),
-    SharpCosSim2d(channels_in=20, features=8, kernel_size=1),
+    SharpCosSim2d(in_channels=10, out_channels=20, kernel_size=3, groups=10),
+    SharpCosSim2d(in_channels=20, out_channels=8, kernel_size=1),
     MaxAbsPool2d(kernel_size=2, stride=2),
     SharpCosSim2d(
-        channels_in=8,
-        features=32,
+        in_channels=8,
+        out_channels=32,
         kernel_size=3,
         groups=8,
         shared_weights=False),
-    SharpCosSim2d(channels_in=32, features=10, kernel_size=1),
+    SharpCosSim2d(in_channels=32, out_channels=10, kernel_size=1),
     MaxAbsPool2d(kernel_size=4, stride=4),
     nn.Flatten(start_dim=1),
     nn.Linear(in_features=10, out_features=10)
