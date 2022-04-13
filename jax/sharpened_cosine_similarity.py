@@ -9,8 +9,7 @@ class SharpCosSim2d(nn.Module):
     kernel_size: int
     stride: int = 1
     padding: str = "VALID"
-    # groups: int = 1
-    depthwise: bool = False
+    groups: int = 1
     shared_weights: bool = True
     shuffle: bool = False
     p_init: float = 1.
@@ -20,18 +19,19 @@ class SharpCosSim2d(nn.Module):
     eps: float = 1e-6
 
     def setup(self):
-        if self.depthwise:
-            self.groups = self.channels_in
+        assert self.groups == 1 or self.groups == self.channels_in, " ".join([
+            "'groups' needs to be 1 or 'channels_in'",
+            f"({self.channels_in})."])
+        assert self.features % self.groups == 0, " ".join([
+            "    When not using shared weights, the number of",
+            "features needs to be a multiple of the number",
+            "of input channels.\n    Here there are",
+            f"{self.features} features and {self.channels_in}",
+            "input channels."])
+
+        if self.groups == self.channels_in:
             self.sharing = self.shared_weights
-            if not self.sharing:
-                assert self.features % self.groups == 0, " ".join([
-                    "    When not using shared weights, the number of",
-                    "features needs to be a multiple of the number",
-                    "of input channels.\n    Here there are",
-                    f"{self.features} features and {self.channels_in}",
-                    "input channels."])
         else:
-            self.groups = 1
             self.sharing = False
 
         # Scaling weights in this way generates kernels that have
@@ -39,14 +39,18 @@ class SharpCosSim2d(nn.Module):
         # the forward pass anyway, this prevents any numerical
         # or gradient weirdness that might result from large amounts of
         # rescaling.
-        weights_per_kernel = (
-            (self.channels_in // self.groups) * self.kernel_size ** 2)
+        self.channels_per_kernel = self.channels_in // self.groups
+        weights_per_kernel = self.channels_per_kernel * self.kernel_size ** 2
+        if self.shared_weights:
+            self.n_kernels = self.features // self.groups
+        else:
+            self.n_kernels = self.features
         initialization_scale = (3 / weights_per_kernel) ** .5
         self.w = self.param(
             'w',
             nn.initializers.uniform(scale=2 * initialization_scale),
-            (self.features,
-                self.channels_in // self.groups,
+            (self.n_kernels,
+                self.channels_per_kernel,
                 self.kernel_size,
                 self.kernel_size))
         # The end result here should be uniformly distributed weights between
@@ -56,57 +60,42 @@ class SharpCosSim2d(nn.Module):
         self.p = self.param(
             'p',
             (lambda k, s: jnp.full(s, self.p_init)),
-            (1, self.features, 1, 1))
+            (1, self.n_kernels, 1, 1))
         self.q = self.param(
             'q',
             (lambda k, s: jnp.full(s, self.q_init)),
             (1, 1, 1, 1))
 
-    def sharp_normalize(self, n, q):
-        square_sum = jnp.sum(n**2, axis=(0, 2, 3), keepdims=True)
-        norm = jnp.sqrt(square_sum + self.eps)
-        norm = norm + q
-        return n / norm
-
-    def scs(self, x, w, q, p):
-        w = self.sharp_normalize(w, q)
-        o, i, kh, kw = w.shape
+    def __call__(self, inputs):
+        x = jnp.transpose(inputs, [0,3,1,2])
+        p = jnp.exp(self.p / self.p_scale)
+        q = jnp.exp(-self.q / self.q_scale)
 
         if self.sharing:
-            xsqsum = jax.lax.conv_general_dilated(
-                x**2,
-                jnp.ones(
-                    [self.groups, self.channels_in // self.groups, kh, kw],
-                    dtype=x.dtype),
-                window_strides=[self.stride, self.stride],
-                padding=self.padding,
-                feature_group_count=self.groups,
-            ) # [b g h_x w_x]
+            w = jnp.tile(self.w, (self.groups, 1, 1, 1))
+            p = jnp.tile(p, (1, self.groups, 1, 1))
         else:
-            xsqsum = jax.lax.conv_general_dilated(
-                x**2,
-                jnp.ones([1, self.channels_in, kh, kw], dtype=x.dtype),
-                window_strides=[self.stride, self.stride],
-                padding=self.padding,
-                # feature_group_count=self.groups,
-            ) # [b g h_x w_x]
+            w = self.w
 
-        xnorm = jnp.sqrt(xsqsum + self.eps)
-        xnorm = xnorm + q
-        xnorm = jnp.repeat(xnorm, self.features, axis=1)
+        y = self.scs(x, w, q, p)
+        y = jnp.transpose(y, [0,2,3,1])
+        return y
 
-        y = jax.lax.conv_general_dilated(
+    def scs(self, x, weight, q, p):
+        weight_norm = jnp.sqrt(
+            jnp.sum(weight**2, axis=(1, 2, 3), keepdims=True) + self.eps)
+        weight = weight / weight_norm
+
+        cos_sim = jax.lax.conv_general_dilated(
             x,
-            w,
+            weight,
             window_strides=[self.stride, self.stride],
             padding=self.padding,
             feature_group_count=self.groups
-        ) # [b o h_x w_x]
+        ) / self.input_norm(x, q)
 
-        y = y / xnorm
-        sign = jnp.sign(y)
-        y = jnp.abs(y) + self.eps
-        y = sign * y ** p
+        # Raise the result to the power p, keeping the sign of the original.
+        y = jnp.sign(cos_sim) * (jnp.abs(cos_sim) + self.eps) ** p
 
         if self.shuffle:
             y = jnp.reshape(
@@ -119,20 +108,23 @@ class SharpCosSim2d(nn.Module):
 
         return y
 
-    def __call__(self, inputs):
-        x = jnp.transpose(inputs, [0,3,1,2])
-        q = jnp.exp(-self.q / self.q_scale)
-        p = jnp.exp(self.p / self.p_scale)
+    def input_norm(self, x, q):
+        xsqsum = jax.lax.conv_general_dilated(
+            x**2,
+            jnp.ones([
+                self.groups,
+                self.channels_per_kernel,
+                self.kernel_size,
+                self.kernel_size], dtype=x.dtype),
+            window_strides=[self.stride, self.stride],
+            padding=self.padding,
+            feature_group_count=self.groups,
+        )
+        # Has the shape [batch, group, input_height, input_width]
 
-        if self.sharing:
-            w = jnp.tile(self.w, (self.groups, 1, 1, 1))
-            p = jnp.tile(p, (1, self.groups, 1, 1))
-        else:
-            w = self.w
-
-        y = self.scs(x, w, q, p)
-        y = jnp.transpose(y, [0,2,3,1])
-        return y
+        xnorm = jnp.sqrt(xsqsum + self.eps) + q
+        outputs_per_group =  self.features // self.groups
+        return jnp.repeat(xnorm, outputs_per_group, axis=1)
 
 
 # Aliases for the class name

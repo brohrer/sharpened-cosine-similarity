@@ -13,10 +13,9 @@ from sharpened_cosine_similarity import SCS, MaxAbsPool
 # jax.tools.colab_tpu.setup_tpu()
 
 config = ml_collections.ConfigDict()
+config.batch_size = 100
 config.learning_rate = 0.03
-config.batch_size = 64
-config.num_epochs = 100
-config.warmup_epochs = 3
+config.num_epochs = 3
 
 
 class SCSNN(nn.Module):
@@ -28,24 +27,18 @@ class SCSNN(nn.Module):
             [[0,0], [1,1], [1,1], [0,0]],
             mode='constant',
             constant_values=0)
-        # x = nn.Dropout(rate=0.07)(x, deterministic=not train)
         x = SCS(channels_in=1, features=10, kernel_size=3)(x)
-        x = SCS(channels_in=10, features=10, kernel_size=1)(x)
-        x = SCS(channels_in=10, features=12, kernel_size=1)(x)
-        # x = nn.Dropout(rate=0.07)(x, deterministic=not train)
         x = MaxAbsPool()(x)
-        x = SCS(channels_in=12, features=2, kernel_size=3, depthwise=True)(x)
-        x = SCS(channels_in=24, features=8, kernel_size=1)(x)
-        # x = nn.Dropout(rate=0.07)(x, deterministic=not train)
+        x = SCS(channels_in=10, features=20, kernel_size=3, groups=10)(x)
+        x = SCS(channels_in=20, features=8, kernel_size=1)(x)
         x = MaxAbsPool()(x)
         x = SCS(
             channels_in=8,
             features=32,
             kernel_size=3,
-            depthwise=True,
+            groups=8,
             shared_weights=False)(x)
         x = SCS(channels_in=32, features=10, kernel_size=1)(x)
-        # x = nn.Dropout(rate=0.07)(x, deterministic=not train)
         x = MaxAbsPool(window_shape=(4, 4), strides=(4, 4))(x)
         x = x.reshape((x.shape[0], -1))   # flatten
         x = nn.Dense(features=10)(x)
@@ -53,14 +46,13 @@ class SCSNN(nn.Module):
 
 
 @partial(jax.jit, static_argnums=3)
-def apply_model(state, images, labels, train, dropout_rng):
+def apply_model(state, images, labels, train):
     """Computes gradients, loss and accuracy for a single batch."""
     def loss_fn(params):
         logits = SCSNN().apply(
             {'params': params},
             images,
-            train=train,
-            rngs={'dropout': dropout_rng})
+            train=train)
         one_hot = jax.nn.one_hot(labels, 10)
         loss = jnp.mean(
             optax.softmax_cross_entropy(logits=logits, labels=one_hot))
@@ -77,7 +69,7 @@ def update_model(state, grads):
     return state.apply_gradients(grads=grads)
 
 
-def train_epoch(state, train_ds, batch_size, rng, dropout_rng):
+def train_epoch(state, train_ds, batch_size, rng):
     """Train for a single epoch."""
     train_ds_size = len(train_ds['image'])
     steps_per_epoch = train_ds_size // batch_size
@@ -96,8 +88,7 @@ def train_epoch(state, train_ds, batch_size, rng, dropout_rng):
             state,
             batch_images,
             batch_labels,
-            train=True,
-            dropout_rng=dropout_rng)
+            train=True)
         state = update_model(state, grads)
         epoch_loss.append(loss)
         epoch_accuracy.append(accuracy)
@@ -106,7 +97,7 @@ def train_epoch(state, train_ds, batch_size, rng, dropout_rng):
     return state, train_loss, train_accuracy
 
 
-def val_epoch(state, test_ds, batch_size, dropout_rng):
+def val_epoch(state, test_ds, batch_size):
     """Validate."""
     # TODO: last incomplete batch not considered.
     ds_size = len(test_ds['image'])
@@ -124,8 +115,7 @@ def val_epoch(state, test_ds, batch_size, dropout_rng):
             state,
             batch_images,
             batch_labels,
-            train=False,
-            dropout_rng=dropout_rng)
+            train=False)
         epoch_loss.append(loss)
         epoch_accuracy.append(accuracy)
     train_loss = np.mean(epoch_loss)
@@ -145,26 +135,11 @@ def get_datasets():
     return train_ds, test_ds
 
 
-def create_learning_rate_fn(config):
-    """Creates learning rate schedule."""
-    warmup_fn = optax.linear_schedule(
-        init_value=0., end_value=config.learning_rate,
-        transition_steps=config.warmup_epochs * config.steps_per_epoch)
-    cosine_epochs = max(config.num_epochs - config.warmup_epochs, 1)
-    cosine_fn = optax.cosine_decay_schedule(
-        init_value=config.learning_rate,
-        decay_steps=cosine_epochs * config.steps_per_epoch)
-    schedule_fn = optax.join_schedules(
-        schedules=[warmup_fn, cosine_fn],
-        boundaries=[config.warmup_epochs * config.steps_per_epoch])
-    return schedule_fn
-
-
-def create_train_state(config, rng, dropout_rng):
+def create_train_state(config, rng):
     """Creates initial `TrainState`."""
     scsnn = SCSNN()
     params = scsnn.init(
-        {'params': rng, 'dropout': dropout_rng},
+        {'params': rng},
         jnp.ones([1, 28, 28, 1]),
         train=True)['params']
 
@@ -172,16 +147,12 @@ def create_train_state(config, rng, dropout_rng):
     print(parameter_overview.get_parameter_overview(
         params, include_stats=True) + "\n")
 
-    lr_schedule = create_learning_rate_fn(config)
-
-    optimizer = optax.chain(
-        optax.add_decayed_weights(1e-6),
-        optax.adaptive_grad_clip(0.01, eps=0.001),
-        optax.scale_by_belief(),
-        optax.scale_by_schedule(lr_schedule),
-        optax.scale(-1.0),
+    optimizer = optax.adam(
+        learning_rate=config.learning_rate,
+        b1=0.9,
+        b2=0.999,
+        eps=1e-08,
     )
-
     return train_state.TrainState.create(
         apply_fn=scsnn.apply, params=params, tx=optimizer)
 
@@ -200,17 +171,16 @@ def train_and_evaluate(config: ml_collections.ConfigDict
     config.steps_per_epoch = ds_size // config.batch_size
 
     rng = jax.random.PRNGKey(0)
-    rng, init_rng, dropout_rng = jax.random.split(rng, 3)
-    state = create_train_state(config, init_rng, dropout_rng)
-    dropout_rng = jax.random.fold_in(dropout_rng, state.step)
+    rng, init_rng = jax.random.split(rng, 2)
+    state = create_train_state(config, init_rng)
 
     for epoch in range(1, config.num_epochs + 1):
 
         rng, input_rng = jax.random.split(rng)
         state, train_loss, train_accuracy = train_epoch(
-            state, train_ds, config.batch_size, input_rng, dropout_rng)
+            state, train_ds, config.batch_size, input_rng)
         test_loss, test_accuracy = val_epoch(
-            state, test_ds, config.batch_size, dropout_rng)
+            state, test_ds, config.batch_size)
 
         print(
             'epoch:% 3d, train_loss: %.4f, train_accuracy: %.2f, test_loss: %.4f, test_accuracy: %.2f'
@@ -220,3 +190,7 @@ def train_and_evaluate(config: ml_collections.ConfigDict
     return state
 
 final_state = train_and_evaluate(config)
+
+print()
+print("Should have 1,053 parameters and final results similar to")
+print("epoch:  3, train_loss: 0.2322, train_accuracy: 93.15, test_loss: 0.1946, test_accuracy: 94.40")
