@@ -21,7 +21,7 @@ class SharpCosSim2d(nn.Conv2d):
         log_p_scale: float=5.,
         log_q_scale: float=.3,
         alpha: Optional[float]=10,
-        autoinit: bool=True,
+        alpha_autoinit: bool=False,
         eps: float=1e-6,
     ):
         assert groups == 1 or groups == in_channels, " ".join([
@@ -89,13 +89,11 @@ class SharpCosSim2d(nn.Conv2d):
         self.eps = eps
 
         if alpha is not None:
-            # self.alpha = torch.nn.Parameter(torch.full((self.out_channels,),
-            #                            float(alpha)))
             self.alpha = torch.nn.Parameter(torch.full(
                 (1, 1, 1, 1), float(alpha)))
         else:
             self.alpha = None
-        if autoinit and (alpha is not None):
+        if alpha_autoinit and (alpha is not None):
             self.LSUV_like_init()
 
     def LSUV_like_init(self):
@@ -107,8 +105,6 @@ class SharpCosSim2d(nn.Conv2d):
             out = self.forward(inp)
             coef = (out.std(dim=(0, 2, 3)) + self.eps).mean()
             self.alpha.data *= 1.0 / coef.view_as(self.alpha)
-            print("initializing alpha to")
-            print(self.alpha)
         return
 
     def forward(self, inp: torch.Tensor) -> torch.Tensor:
