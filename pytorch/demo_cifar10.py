@@ -71,7 +71,6 @@ class Network(nn.Module):
         self.scs1 = SharpenedCosineSimilarity(
             in_channels=n_input_channels,
             out_channels=n_units_1,
-            bias=True,
             kernel_size=5,
             padding=0)
         self.pool1 = MaxAbsPool2d(kernel_size=2, stride=2, ceil_mode=True)
@@ -79,7 +78,6 @@ class Network(nn.Module):
         self.scs2 = SharpenedCosineSimilarity(
             in_channels=n_units_1,
             out_channels=n_units_2,
-            bias=True,
             kernel_size=5,
             padding=1)
         self.pool2 = MaxAbsPool2d(kernel_size=2, stride=2, ceil_mode=True)
@@ -87,7 +85,6 @@ class Network(nn.Module):
         self.scs3 = SharpenedCosineSimilarity(
             in_channels=n_units_2,
             out_channels=n_units_3,
-            bias=True,
             kernel_size=5,
             padding=1)
         self.pool3 = MaxAbsPool2d(kernel_size=4, stride=4, ceil_mode=True)
