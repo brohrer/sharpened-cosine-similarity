@@ -36,7 +36,7 @@ class FashionMNISTDataModule(pl.LightningDataModule):
     def __init__(self, data_dir: str = "./data/FashionMNIST", batch_size: int = 32):
         super().__init__()
         self.data_dir = data_dir
-        self.batch_size = batch_size        
+        self.batch_size = batch_size
 
     def setup(self, stage = None):
 
@@ -106,7 +106,6 @@ class SCSLNet(pl.LightningModule):
 
     def on_validation_epoch_end(self):
         # empty print for newline   
-        
         if self.epoch >= 0:
             tqdm.write(f"Epoch: {self.epoch}")
             tqdm.write(f"train loss: {np.mean(self.step_logs['train_loss']):06.2f}")

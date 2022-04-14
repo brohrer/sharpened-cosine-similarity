@@ -15,13 +15,13 @@ class SharpCosSim2d(nn.Conv2d):
         padding: int=0,
         stride: int=1,
         groups: int=1,
-        shared_weights: bool = True,
+        shared_weights: bool = False,
         log_p_init: float=.7,
         log_q_init: float=1.,
         log_p_scale: float=5.,
         log_q_scale: float=.3,
         alpha: Optional[float] = None,
-        autoinit: bool = True,
+        autoinit: bool = False,
         eps: float=1e-6,
     ):
         assert groups == 1 or groups == in_channels, " ".join([
@@ -89,8 +89,10 @@ class SharpCosSim2d(nn.Conv2d):
         self.eps = eps
 
         if alpha is not None:
-            self.alpha = torch.nn.Parameter(torch.full((self.out_channels,),
-                                        float(alpha)))
+            # self.alpha = torch.nn.Parameter(torch.full((self.out_channels,),
+            #                            float(alpha)))
+            self.alpha = torch.nn.Parameter(torch.full(
+                (1, 1, 1, 1), float(alpha)))
         else:
             self.alpha = None
         if autoinit and (alpha is not None):

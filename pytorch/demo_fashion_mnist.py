@@ -15,8 +15,8 @@ from tqdm import tqdm
 from absolute_pooling import MaxAbsPool2d
 from sharpened_cosine_similarity import SharpCosSim2d
 
-batch_size = 64
-max_lr = .01
+batch_size = 100
+max_lr = .03
 n_classes = 10
 n_epochs = 100
 n_runs = 10
@@ -69,31 +69,31 @@ class Network(nn.Module):
         super().__init__()
 
         self.scs1 = SharpCosSim2d(
-            n_channels_in=n_input_channels,
-            n_kernels=n_kernels_in,
+            in_channels=n_input_channels,
+            out_channels=n_kernels_in,
             kernel_size=kernel_size,
             padding=1)
         self.pool1 = MaxAbsPool2d(kernel_size=2, stride=2)
 
         self.scs2_depth = SharpCosSim2d(
-            n_channels_in=n_kernels_in,
-            n_kernels=n_kernels_in,
+            in_channels=n_kernels_in,
+            out_channels=n_kernels_in,
             kernel_size=kernel_size,
-            depthwise=True)
+            groups=n_kernels_in)
         self.scs2_point = SharpCosSim2d(
-            n_channels_in=n_kernels_in,
-            n_kernels=n_kernels,
+            in_channels=n_kernels_in,
+            out_channels=n_kernels,
             kernel_size=1)
         self.pool2 = MaxAbsPool2d(kernel_size=2, stride=2)
 
         self.scs3_depth = SharpCosSim2d(
-            n_channels_in=n_kernels,
-            n_kernels=n_kernels,
+            in_channels=n_kernels,
+            out_channels=n_kernels,
             kernel_size=kernel_size,
-            depthwise=True)
+            groups=n_kernels)
         self.scs3_point = SharpCosSim2d(
-            n_channels_in=n_kernels,
-            n_kernels=n_kernels,
+            in_channels=n_kernels,
+            out_channels=n_kernels,
             kernel_size=1)
         self.pool3 = MaxAbsPool2d(kernel_size=4, stride=4)
 
