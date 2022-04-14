@@ -20,8 +20,8 @@ class SharpCosSim2d(nn.Conv2d):
         log_q_init: float=1.,
         log_p_scale: float=5.,
         log_q_scale: float=.3,
-        alpha: Optional[float] = None,
-        autoinit: bool = False,
+        alpha: Optional[float]=10,
+        autoinit: bool=True,
         eps: float=1e-6,
     ):
         assert groups == 1 or groups == in_channels, " ".join([
@@ -105,8 +105,10 @@ class SharpCosSim2d(nn.Conv2d):
         inp = torch.rand(BS, CH, H, W, device=device)
         with torch.no_grad():
             out = self.forward(inp)
-            coef = out.std(dim=(0, 2, 3)) + self.eps
+            coef = (out.std(dim=(0, 2, 3)) + self.eps).mean()
             self.alpha.data *= 1.0 / coef.view_as(self.alpha)
+            print("initializing alpha to")
+            print(self.alpha)
         return
 
     def forward(self, inp: torch.Tensor) -> torch.Tensor:
