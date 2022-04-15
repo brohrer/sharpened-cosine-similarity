@@ -23,14 +23,13 @@ in 2020. There's some more development in this [blog post](https://www.rpisoni.d
 These are some things that have been reported to work so far.
 
 * The big benefit of SCS appears to be parameter efficiency and architecture simplicity. 
-It doesn't look like it's going to beat any accuracy records, and it doesn't always run very fast, but it's killing it
+It doesn't look like it's going to beat any accuracy records, and it doesn't always run very fast, but it's killing
 in this [parameter efficiency leaderboard](https://github.com/brohrer/parameter_efficiency_leaderboard).
 * Skip the nonlinear activation layers, like ReLU and sigmoid, after SCS layers.
 * Skip the dropout layers after SCS layers.
 * Skip the normalization layers, like batch normalization or layer normalization, after SCS layers.
 * Use MaxAbsPool instead of MaxPool. It selects the element with the highest magnitude of activity, even if it's negative.
-* Raising activities to the power p generally doesn't parallelize well on GPUs and TPUs. It will slow your code down a LOT compared to straight convolutions.
-* Disabling the p parameters results in a huge speedup on GPUs, but this takes the "sharpened" out of SCS. Regular old cosine similarity is cool, but it is its own thing with its own limitations.
+* Raising activities to the power p generally doesn't parallelize well on GPUs and TPUs. It will slow your code down a LOT compared to straight convolutions. Disabling the p parameters results in a huge speedup on GPUs, but this takes the "sharpened" out of SCS. Regular old cosine similarity is cool, but it is its own thing with its own limitations.
 
 ## Examples
 In the age of gargantuan language models, it's uncommon to talk about how *few* parameters a model uses,
