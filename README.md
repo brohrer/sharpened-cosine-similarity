@@ -10,6 +10,31 @@ An alternative to convolution for neural networks
 [Jax](https://github.com/brohrer/sharpened-cosine-similarity/tree/main/jax)
 
 
+## Description
+
+Sharpened cosine similarity is a strided operation, like convolution, that extracts features from an image.
+
+![Equation for sharpened cosine similarity](doc/scs.png)
+
+It is related to convolution, but with important defferences. Convolution is a strided dot product between a signal, *s*, and a kernel *k*.
+
+![Equation for convolution](doc/convolution.png)
+
+A cousin of convolution is cosine similarity, where the signal patch and kernel are both normalized to have a magnitude of 1 before the
+dot product is taken. It is so named because in two dimensions, it gives the cosine of the angle between the signal and the kernel vectors.
+
+![Equation for cosine similarity](doc/cosine.png)
+
+The cosine is known for being broad, that is, two quite different vectors can have a moderately high cosine similarity.
+It can be sharpened by raising the magnitude of the result to a power, *p*, while maintaining the sign.
+
+![Equation for raw sharpened cosine similarity](doc/sharpened.png)
+
+This measure can become numerically unstable if ever the magnitude of the signal or kernel gets too close to zero.
+Adding a small value, *q*, to the signal magnitude. In practice, the kernel magnitude doesn't get too small and doesn't need this term.
+
+
+
 ## Background
 
 One day there will be a comprehensive post and paper describing sharpened cosine similarity (SCS), but today is not that day. 
