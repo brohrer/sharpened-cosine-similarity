@@ -69,6 +69,7 @@ this is somewhere around one-tenth of the parameters in previous models in this 
 
 | Date | Milestone |
 | ------------- | ------------- |
+| 2022-04-23 | [Code](https://github.com/stevenwalton/SCS-CCT) by [Steven Walton](https://github.com/stevenwalton). SCS in [Compact Transformers](https://arxiv.org/abs/2104.05704). |
 | 2022-03-28 | [Code]( https://colab.research.google.com/drive/1KUKFEMneQMS3OzPYnWZGkEnry3PdzCfn?usp=sharing) by [Raphael Pisoni]( https://twitter.com/ml_4rtemi5/status/1508341568188649474?s=20&t=YdSrNvUI-zqmaB83nwk42Q). Jax implementation. |
 | 2022-03-11 | [Code](https://github.com/brohrer/sharpened-cosine-similarity/blob/main/pytorch/demo_fashion_mnist_lightning.py) by [Phil Sodmann](https://twitter.com/PSodmann). PyTorch Lightning demo on the Fashion MNIST data. |
 | 2022-02-25 | [Experiments and analysis](https://twitter.com/_clashluke/status/1497092150906941442) by [Lucas Nestler](https://github.com/ClashLuke/) . TPU implementation of SCS. Runtime performance comparison with and without the p parameter |
