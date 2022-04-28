@@ -18,6 +18,21 @@ from sharpened_cosine_similarity import SharpenedCosineSimilarity
 
 from densenet import DenseNet
 
+import os
+import random
+import numpy as np
+import torch
+
+def set_all_seeds(seed):
+  random.seed(seed)
+  os.environ('PYTHONHASHSEED') = str(seed)
+  np.random.seed(seed)
+  torch.manual_seed(seed)
+  torch.cuda.manual_seed(seed)
+  torch.backends.cudnn.deterministic = True
+
+set_all_seeds(621)
+
 batch_size = 64
 max_lr = .05
 n_classes = 10
