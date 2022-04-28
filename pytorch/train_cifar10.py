@@ -107,11 +107,6 @@ scheduler = OneCycleLR(
     steps_per_epoch=steps_per_epoch,
     epochs=n_epochs)
 
-train_accuracy_results = []
-train_loss_results = []
-test_accuracy_results = []
-test_loss_results = []
-
 for i_epoch in range(n_epochs):
 
     epoch_start_time = time.time()
@@ -120,7 +115,7 @@ for i_epoch in range(n_epochs):
     epoch_training_num_correct = 0
     epoch_testing_num_correct = 0
 
-    with tqdm(enumerate(training_loader)) as tqdm_training_loader:
+    with tqdm(enumerate(training_loader), total=len(training_loader)) as tqdm_training_loader:
         for batch_idx, batch in tqdm_training_loader:
 
             images, labels = batch
