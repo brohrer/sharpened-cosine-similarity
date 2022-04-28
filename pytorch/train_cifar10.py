@@ -65,7 +65,7 @@ set_all_seeds(621)
 batch_size = 64
 max_lr = .05
 n_classes = 10
-n_epochs = 2
+n_epochs = 100
 
 training_set = CIFAR10(
     root=os.path.join('.', 'data', 'CIFAR10'),
@@ -163,3 +163,4 @@ for i_epoch in range(n_epochs):
         i_epoch, training_loss, training_accuracy, testing_loss, testing_accuracy), log_file)
 
 torch.save(network.state_dict(), path + '.pt')
+log_file.close()
