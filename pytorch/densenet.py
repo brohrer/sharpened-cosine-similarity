@@ -25,10 +25,11 @@ class _DenseLayer(nn.Module):
     def __init__(self, num_input_features, growth_rate, bn_size, drop_rate, memory_efficient=False,
         sharpened_cosine_similarity = False):
         super(_DenseLayer, self).__init__()
+        self.scs = sharpened_cosine_similarity
         self.add_module('norm1', nn.BatchNorm2d(num_input_features))
         self.add_module('relu1', nn.ReLU(inplace=True))
         if sharpened_cosine_similarity:
-            self.add_module('scs1', SharpCosSim2d(in_channels=num_input_features,
+            self.add_module('conv1', SharpCosSim2d(num_input_features,
                                         out_channels=bn_size * growth_rate,
                                         kernel_size=1,
                                         stride = 1))
@@ -39,8 +40,8 @@ class _DenseLayer(nn.Module):
         self.add_module('norm2', nn.BatchNorm2d(bn_size * growth_rate))
         self.add_module('relu2', nn.ReLU(inplace=True))
         if sharpened_cosine_similarity:
-            self.add_module('scs2', SharpCosSim2d(in_channels=num_input_features,
-                                        out_channels=bn_size * growth_rate,
+            self.add_module('conv2', SharpCosSim2d(bn_size * growth_rate,
+                                        out_channels=growth_rate,
                                         kernel_size=1,
                                         stride = 1))
         else:
@@ -139,8 +140,8 @@ class _Transition(nn.Sequential):
         self.add_module('norm', nn.BatchNorm2d(num_input_features))
         self.add_module('relu', nn.ReLU(inplace=True))
         if sharpened_cosine_similarity:
-            self.add_module('scs', SharpCosSim2d(in_channels=num_input_features,
-                                        out_channels=num_output_features,
+            self.add_module('conv', SharpCosSim2d(num_input_features,
+                                        num_output_features,
                                         kernel_size=1,
                                         stride = 1))
         else:
@@ -167,7 +168,7 @@ class DenseNet(nn.Module):
 
     def __init__(self, growth_rate=32, block_config=(6, 12, 24, 16),
                  num_init_features=64, bn_size=4, drop_rate=0, num_classes=1000, memory_efficient=False,
-                 sharpened_cosine_similarity = False):
+                 sharpened_cosine_similarity = False, n_channels=3):
 
         super(DenseNet, self).__init__()
 
@@ -175,15 +176,15 @@ class DenseNet(nn.Module):
         #kinda lazy way of doing this
         if sharpened_cosine_similarity:
             self.features = nn.Sequential(OrderedDict([
-                ('scs1', SharpCosSim2d(3, num_init_features, kernel_size=7, stride=2,
-                                    padding=3, bias=False)),
+                ('conv1', SharpCosSim2d(n_channels, num_init_features, kernel_size=7, stride=2,
+                                    padding=3)),
                 ('norm0', nn.BatchNorm2d(num_init_features)),
                 ('relu0', nn.ReLU(inplace=True)),
                 ('pool0', nn.MaxPool2d(kernel_size=3, stride=2, padding=1)),
             ]))
         else:
             self.features = nn.Sequential(OrderedDict([
-                ('conv0', nn.Conv2d(3, num_init_features, kernel_size=7, stride=2,
+                ('conv0', nn.Conv2d(n_channels, num_init_features, kernel_size=7, stride=2,
                                     padding=3, bias=False)),
                 ('norm0', nn.BatchNorm2d(num_init_features)),
                 ('relu0', nn.ReLU(inplace=True)),

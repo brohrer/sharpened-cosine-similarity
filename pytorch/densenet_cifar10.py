@@ -16,11 +16,13 @@ from tqdm import tqdm
 from absolute_pooling import MaxAbsPool2d
 from sharpened_cosine_similarity import SharpenedCosineSimilarity
 
+from densenet import DenseNet
+
 batch_size = 64
 max_lr = .05
 n_classes = 10
 n_epochs = 100
-n_runs = 1000
+n_runs = 1
 n_input_channels = 3
 n_units_1 = 16
 n_units_2 = 16
@@ -130,8 +132,8 @@ except Exception:
 steps_per_epoch = len(training_loader)
 
 for i_run in range(n_runs):
-    network = Network()
-    print(f"Model has {network.n_params()} parameters.")
+    network = DenseNet(sharpened_cosine_similarity=True)
+    # print(f"Model has {network.n_params()} parameters.")
     optimizer = optim.Adam(network.parameters(), lr=max_lr)
     scheduler = OneCycleLR(
         optimizer,
