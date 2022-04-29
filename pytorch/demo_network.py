@@ -43,16 +43,6 @@ class DemoNetwork(nn.Module):
         self.pool3 = MaxAbsPool2d(kernel_size=4, stride=4, ceil_mode=True)
         self.out = nn.Linear(in_features=n_units_3, out_features=n_classes)
 
-    def n_params(self):
-        n = 0
-        for scs in [self.scs1, self.scs2, self.scs3]:
-            n += (
-                np.prod(scs.weight.shape) +
-                np.prod(scs.p.shape) +
-                np.prod(scs.q.shape))
-        n += np.prod(self.out.weight.shape)
-        return n
-
     def forward(self, t):
         t = self.scs1(t)
         t = self.pool1(t)

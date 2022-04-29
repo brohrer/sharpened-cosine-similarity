@@ -10,7 +10,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import OneCycleLR
 from torch.utils.data import DataLoader
-import torchvision
 from torchvision.datasets import CIFAR10
 import torchvision.transforms as transforms
 from tqdm import tqdm
@@ -22,9 +21,43 @@ from densenet import DenseNet
 from demo_network import DemoNetwork
 import argparse
 
+########## Hyper Parameters ##########
+
+batch_size = 64
+n_epochs = 2
+max_lr = .05
+
+########## Setup ##########
+
+def createdirs(path):
+    if not os.path.exists(os.path.dirname(path)):
+        try:
+            os.makedirs(os.path.dirname(path))
+        except OSError as exc:
+            if exc.errno != errno.EEXIST:
+                raise
+
+def log(str, f):
+    print(str, file=sys.stderr)
+    print(str, file=f)
+
 parser = argparse.ArgumentParser(description='SCS Train')
 parser.add_argument('--model', default='', help='model type')
 args = parser.parse_args()
+
+def set_all_seeds(seed):
+  random.seed(seed)
+  os.environ['PYTHONHASHSEED'] = str(seed)
+  np.random.seed(seed)
+  torch.manual_seed(seed)
+  torch.cuda.manual_seed(seed)
+  torch.backends.cudnn.deterministic = True
+
+set_all_seeds(621)
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+########## Model Definitions ##########
 
 def gen_densenet_model():
     return DenseNet(sharpened_cosine_similarity=True)
@@ -39,33 +72,7 @@ network_gen = {
 
 model_gen = network_gen.get(args.model)
 
-def set_all_seeds(seed):
-  random.seed(seed)
-  os.environ['PYTHONHASHSEED'] = str(seed)
-  np.random.seed(seed)
-  torch.manual_seed(seed)
-  torch.cuda.manual_seed(seed)
-  torch.backends.cudnn.deterministic = True
-
-
-def createdirs(path):
-    if not os.path.exists(os.path.dirname(path)):
-        try:
-            os.makedirs(os.path.dirname(path))
-        except OSError as exc:
-            if exc.errno != errno.EEXIST:
-                raise
-
-def log(str, f):
-    print(str, file=sys.stderr)
-    print(str, file=f)
-
-set_all_seeds(621)
-
-batch_size = 64
-max_lr = .05
-n_classes = 10
-n_epochs = 100
+########## Data ##########
 
 training_set = CIFAR10(
     root=os.path.join('.', 'data', 'CIFAR10'),
@@ -91,16 +98,20 @@ testing_loader = DataLoader(
     batch_size=batch_size,
     shuffle=False)
 
-steps_per_epoch = len(training_loader)
+########## Training Loop ##########
+
+network = model_gen().to(device)
+print(f"Training: {args.model}")
+
+optimizer = optim.Adam(network.parameters(), lr=max_lr)
 
 path = 'logs/' + args.model + '/' + datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-
 createdirs(path)
 log_file = open(path + '.log', 'w+')
 
-network = model_gen()
-# print(f"Model has {network.n_params()} parameters.")
-optimizer = optim.Adam(network.parameters(), lr=max_lr)
+
+steps_per_epoch = len(training_loader)
+
 scheduler = OneCycleLR(
     optimizer,
     max_lr=max_lr,
@@ -108,7 +119,6 @@ scheduler = OneCycleLR(
     epochs=n_epochs)
 
 for i_epoch in range(n_epochs):
-
     epoch_start_time = time.time()
     epoch_training_loss = 0
     epoch_testing_loss = 0
@@ -117,8 +127,9 @@ for i_epoch in range(n_epochs):
 
     with tqdm(enumerate(training_loader), total=len(training_loader)) as tqdm_training_loader:
         for batch_idx, batch in tqdm_training_loader:
-
             images, labels = batch
+            images = images.to(device)
+            labels = labels.to(device)
             preds = network(images)
             loss = F.cross_entropy(preds, labels)
 
@@ -139,12 +150,11 @@ for i_epoch in range(n_epochs):
     training_loss = epoch_training_loss / len(training_loader.dataset)
     training_accuracy = (epoch_training_num_correct / len(training_loader.dataset))
 
-    # At the end of each epoch run the testing data through an
-    # evaluation pass to see how the model is doing.
-    # Specify no_grad() to prevent a nasty out-of-memory condition.
     with torch.no_grad():
         for batch in testing_loader:
             images, labels = batch
+            images = images.to(device)
+            labels = labels.to(device)
             preds = network(images)
             loss = F.cross_entropy(preds, labels)
 

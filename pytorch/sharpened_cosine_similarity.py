@@ -96,6 +96,12 @@ class SharpCosSim2d(nn.Conv2d):
         if alpha_autoinit and (alpha is not None):
             self.LSUV_like_init()
 
+        self.register_buffer('input_norm_filter', torch.ones((
+            self.groups,
+            self.channels_per_kernel,
+            self.kernel_size,
+            self.kernel_size)))
+
     def LSUV_like_init(self):
         BS, CH = 32, int(self.weight.shape[1]*self.groups)
         H, W = self.weight.shape[2], self.weight.shape[3]
@@ -157,16 +163,12 @@ class SharpCosSim2d(nn.Conv2d):
         # by convolving them with the mock all-ones kernel weights.
         xnorm = F.conv2d(
             inp.square(),
-            torch.ones((
-                self.groups,
-                self.channels_per_kernel,
-                self.kernel_size,
-                self.kernel_size)),
+            self.input_norm_filter,
             stride=self.stride,
             padding=self.padding,
             groups=self.groups)
 
-        # Add in the q parameter. 
+        # Add in the q parameter.
         xnorm = (xnorm + self.eps).sqrt() + q
         outputs_per_group = self.out_channels // self.groups
         return torch.repeat_interleave(xnorm, outputs_per_group, axis=1)
