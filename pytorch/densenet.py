@@ -107,7 +107,7 @@ class _DenseLayer(nn.Module):
             bottleneck_output = self.bn_function(prev_features)
 
         if self.activation and self.normalization:
-            new_features = self.conv2(self.relu2(self.norm1(bottleneck_output)))  # noqa: T484
+            new_features = self.conv2(self.relu2(self.norm2(bottleneck_output)))  # noqa: T484
         elif self.activation:
             new_features = self.conv2(self.relu2(bottleneck_output))
         elif self.normalization:
