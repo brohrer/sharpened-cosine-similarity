@@ -53,7 +53,15 @@ class _DenseLayer(nn.Module):
         concated_features = torch.cat(inputs, 1)
 
         #not sure what to do here
-        bottleneck_output = self.conv1(self.relu1(self.norm1(concated_features)))  # noqa: T484
+        if self.activation and self.normalization:
+            bottleneck_output = self.conv1(self.relu1(self.norm1(concated_features)))  # noqa: T484
+        elif self.activation:
+            bottleneck_output = self.conv1(self.norm1(concated_features))
+        elif self.normalization:
+            bottleneck_output = self.conv1(self.relu1(concated_features))
+        else:
+            bottleneck_output = self.conv1(concated_features)
+
         return bottleneck_output
 
     # todo: rewrite when torchscript supports any
@@ -98,7 +106,15 @@ class _DenseLayer(nn.Module):
         else:
             bottleneck_output = self.bn_function(prev_features)
 
-        new_features = self.conv2(self.relu2(self.norm2(bottleneck_output)))
+        if self.activation and self.normalization:
+            new_features = self.conv2(self.relu2(self.norm1(bottleneck_output)))  # noqa: T484
+        elif self.activation:
+            new_features = self.conv2(self.norm2(bottleneck_output))
+        elif self.normalization:
+            new_featurest = self.conv2(self.relu2(bottleneck_output))
+        else:
+            new_features = self.conv2(bottleneck_output)
+
         if self.drop_rate > 0:
             new_features = F.dropout(new_features, p=self.drop_rate,
                                      training=self.training)
