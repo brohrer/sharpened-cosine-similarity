@@ -1,3 +1,4 @@
+from multiprocessing.dummy import active_children
 import os
 import random
 import sys
@@ -20,6 +21,8 @@ from sharpened_cosine_similarity import SharpenedCosineSimilarity
 from densenet import DenseNet
 from demo_network import DemoNetwork
 import argparse
+
+import errno
 
 ########## Hyper Parameters ##########
 
@@ -60,14 +63,26 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 ########## Model Definitions ##########
 
 def gen_densenet_model():
-    return DenseNet(sharpened_cosine_similarity=True)
+    return DenseNet(sharpened_cosine_similarity=True, activation = True, normalization =True)
+
+def gen_densenet_base():
+    return DenseNet(sharpened_cosine_similarity=False, activation = True, normalization = True)
+
+def gen_densenet_no_act():
+    return DenseNet(sharpened_cosine_similarity=True, activation = False, normalization = False)
+
+def gen_densenet_no_norm():
+    return DenseNet(sharpened_cosine_similarity=True, activation = True, normalization = False)
 
 def gen_demo_network():
     return DemoNetwork()
 
 network_gen = {
     "densenet": gen_densenet_model,
-    "demo": gen_demo_network,
+    "densenet_base": gen_densenet_base,
+    "densenet_no_act": gen_densenet_no_act,
+    "densenet_no_scs": gen_densenet_no_norm,
+    "demo": gen_demo_network
 }
 
 model_gen = network_gen.get(args.model)
