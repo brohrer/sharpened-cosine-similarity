@@ -81,7 +81,7 @@ network_gen = {
     "densenet": gen_densenet_model,
     "densenet_base": gen_densenet_base,
     "densenet_no_act": gen_densenet_no_act,
-    "densenet_no_scs": gen_densenet_no_norm,
+    "densenet_no_norm": gen_densenet_no_norm,
     "demo": gen_demo_network
 }
 

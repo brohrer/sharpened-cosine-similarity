@@ -55,10 +55,10 @@ class _DenseLayer(nn.Module):
         #not sure what to do here
         if self.activation and self.normalization:
             bottleneck_output = self.conv1(self.relu1(self.norm1(concated_features)))  # noqa: T484
-        elif self.activation:
-            bottleneck_output = self.conv1(self.norm1(concated_features))
-        elif self.normalization:
+        elif self.activation :
             bottleneck_output = self.conv1(self.relu1(concated_features))
+        elif self.normalization:
+            bottleneck_output = self.conv1(self.norm1(concated_features))
         else:
             bottleneck_output = self.conv1(concated_features)
 
@@ -109,9 +109,9 @@ class _DenseLayer(nn.Module):
         if self.activation and self.normalization:
             new_features = self.conv2(self.relu2(self.norm1(bottleneck_output)))  # noqa: T484
         elif self.activation:
-            new_features = self.conv2(self.norm2(bottleneck_output))
+            new_features = self.conv2(self.relu2(bottleneck_output))
         elif self.normalization:
-            new_featurest = self.conv2(self.relu2(bottleneck_output))
+            new_features = self.conv2(self.norm2(bottleneck_output))
         else:
             new_features = self.conv2(bottleneck_output)
 
