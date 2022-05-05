@@ -19,6 +19,7 @@ from absolute_pooling import MaxAbsPool2d
 from sharpened_cosine_similarity import SharpenedCosineSimilarity
 
 from densenet import DenseNet
+from resnet import *
 from demo_network import DemoNetwork
 import argparse
 
@@ -77,12 +78,20 @@ def gen_densenet_no_norm():
 def gen_demo_network():
     return DemoNetwork()
 
+def gen_resnet_model():
+    return ResNet(BasicBlock, [2, 2, 2, 2])
+
+def gen_resnet_scs():
+    return ResNet(BasicBlock, [2, 2, 2, 2], scs = True)
+
 network_gen = {
     "densenet": gen_densenet_model,
     "densenet_base": gen_densenet_base,
     "densenet_no_act": gen_densenet_no_act,
     "densenet_no_norm": gen_densenet_no_norm,
-    "demo": gen_demo_network
+    "demo": gen_demo_network,
+    "resnet": gen_resnet_model,
+    "resnet_scs": gen_resnet_scs
 }
 
 model_gen = network_gen.get(args.model)
