@@ -17,7 +17,7 @@ from absolute_pooling import MaxAbsPool2d
 from sharpened_cosine_similarity import SharpenedCosineSimilarity
 
 batch_size = 64
-max_lr = .05
+max_lr = .01
 n_classes = 10
 n_epochs = 100
 n_runs = 1000
@@ -131,7 +131,13 @@ steps_per_epoch = len(training_loader)
 
 for i_run in range(n_runs):
     network = Network()
-    print(f"Model has {network.n_params()} parameters.")
+
+    for p in network.parameters():
+        if p.requires_grad:
+            print(p.numel())
+    n_params = sum(p.numel() for p in network.parameters() if p.requires_grad)
+    print(f"Model has {n_params:_} trainable parameters.")
+
     optimizer = optim.Adam(network.parameters(), lr=max_lr)
     scheduler = OneCycleLR(
         optimizer,

@@ -16,12 +16,9 @@ class SharpCosSim2d(nn.Conv2d):
         stride: int=1,
         groups: int=1,
         shared_weights: bool = False,
-        log_p_init: float=.7,
-        log_q_init: float=1.,
-        log_p_scale: float=5.,
-        log_q_scale: float=.3,
-        alpha: Optional[float]=10,
-        alpha_autoinit: bool=False,
+        w_max: float=1.,
+        p_min: int=.1,
+        q_init: float=1e-3,
         eps: float=1e-6,
     ):
         assert groups == 1 or groups == in_channels, " ".join([
@@ -62,15 +59,14 @@ class SharpCosSim2d(nn.Conv2d):
         # or gradient weirdness that might result from large amounts of
         # rescaling.
         self.channels_per_kernel = self.in_channels // self.groups
-        weights_per_kernel = self.channels_per_kernel * self.kernel_size ** 2
         if self.shared_weights:
             self.n_kernels = self.out_channels // self.groups
         else:
             self.n_kernels = self.out_channels
-        initialization_scale = (3 / weights_per_kernel) ** .5
+        self.w_max = w_max
         scaled_weight = np.random.uniform(
-            low=-initialization_scale,
-            high=initialization_scale,
+            low=-self.w_max,
+            high=self.w_max,
             size=(
                 self.n_kernels,
                 self.channels_per_kernel,
@@ -79,41 +75,37 @@ class SharpCosSim2d(nn.Conv2d):
         )
         self.weight = torch.nn.Parameter(torch.Tensor(scaled_weight))
 
-        self.log_p_scale = log_p_scale
-        self.log_q_scale = log_q_scale
-        self.p = torch.nn.Parameter(torch.full(
-            (1, self.n_kernels, 1, 1),
-            float(log_p_init * self.log_p_scale)))
-        self.q = torch.nn.Parameter(torch.full(
-            (1, 1, 1, 1), float(log_q_init * self.log_q_scale)))
+        # Initialize p values on a uniform interval from 1 to 3.
+        # The final values of p are pretty insensitive to this,
+        # so I don't think it's worth it to expose this is a parameter.
+        self.p_min = p_min
+        p_values = np.random.uniform(
+            low=1,
+            high=3,
+            size=(1, self.n_kernels, 1, 1)
+        )
+        self.p = torch.nn.Parameter(torch.Tensor(p_values))
+
+        self.log_q = torch.nn.Parameter(torch.full(
+            (1, 1, 1, 1), float(np.log(q_init))))
         self.eps = eps
 
-        if alpha is not None:
-            self.alpha = torch.nn.Parameter(torch.full(
-                (1, 1, 1, 1), float(alpha)))
-        else:
-            self.alpha = None
-        if alpha_autoinit and (alpha is not None):
-            self.LSUV_like_init()
-
-    def LSUV_like_init(self):
-        BS, CH = 32, int(self.weight.shape[1]*self.groups)
-        H, W = self.weight.shape[2], self.weight.shape[3]
-        device = self.weight.device
-        inp = torch.rand(BS, CH, H, W, device=device)
-        with torch.no_grad():
-            out = self.forward(inp)
-            coef = (out.std(dim=(0, 2, 3)) + self.eps).mean()
-            self.alpha.data *= 1.0 / coef.view_as(self.alpha)
-        return
-
     def forward(self, inp: torch.Tensor) -> torch.Tensor:
+        # Enforce limits on parameters
+        self.weight.data = torch.clamp(
+            self.weight.data,
+            min=-self.w_max,
+            max=self.w_max)
+        self.p.data = torch.clamp(
+            self.p.data,
+            min=self.p_min)
+
         # Scale and transform the p and q parameters
         # to ensure that their magnitudes are appropriate
         # and their gradients are smooth
         # so that they will be learned well.
-        p = torch.exp(self.p / self.log_p_scale)
-        q = torch.exp(-self.q / self.log_q_scale)
+        p = self.p
+        q = torch.exp(self.log_q)
 
         # If necessary, expand out the weight and p parameters.
         if self.shared_weights:
@@ -140,12 +132,7 @@ class SharpCosSim2d(nn.Conv2d):
         ) / self.input_norm(inp, q)
 
         # Raise the result to the power p, keeping the sign of the original.
-        out = cos_sim.sign() * (cos_sim.abs() + self.eps) ** p
-
-        # Apply learned scale parameter
-        if self.alpha is not None:
-            out = self.alpha.view(1, -1, 1, 1) * out
-        return out
+        return cos_sim.sign() * (cos_sim.abs() + self.eps) ** p
 
     def weight_norm(self, weight):
         # Find the l2-norm of the weights in each kernel.

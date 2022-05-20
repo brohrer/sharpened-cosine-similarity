@@ -137,7 +137,6 @@ for i_run in range(n_runs):
     for p in network.parameters():
         if p.requires_grad:
             print(p.numel())
-
     n_params = sum(p.numel() for p in network.parameters() if p.requires_grad)
     print(f"Model has {n_params:_} trainable parameters.")
 

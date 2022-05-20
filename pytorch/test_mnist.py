@@ -15,9 +15,8 @@ from absolute_pooling import MaxAbsPool2d
 from sharpened_cosine_similarity import SharpCosSim2d
 
 batch_size = 100
-learning_rate = .03
+learning_rate = .01
 n_epochs = 3
-alpha = 1
 
 training_set = torchvision.datasets.MNIST(
     root='./data/MNIST',
@@ -41,18 +40,18 @@ testing_loader = DataLoader(
 
 
 network = nn.Sequential(
-    SharpCosSim2d(in_channels=1, out_channels=10, kernel_size=3, padding=1, alpha=alpha),
+    SharpCosSim2d(in_channels=1, out_channels=10, kernel_size=3, padding=1),
     MaxAbsPool2d(kernel_size=2, stride=2),
-    SharpCosSim2d(in_channels=10, out_channels=20, kernel_size=3, groups=10, alpha=alpha),
-    SharpCosSim2d(in_channels=20, out_channels=8, kernel_size=1, alpha=alpha),
+    SharpCosSim2d(in_channels=10, out_channels=20, kernel_size=3, groups=10),
+    SharpCosSim2d(in_channels=20, out_channels=8, kernel_size=1),
     MaxAbsPool2d(kernel_size=2, stride=2),
     SharpCosSim2d(
         in_channels=8,
         out_channels=32,
         kernel_size=3,
         groups=8,
-        shared_weights=False, alpha=alpha),
-    SharpCosSim2d(in_channels=32, out_channels=10, kernel_size=1, alpha=alpha),
+        shared_weights=False),
+    SharpCosSim2d(in_channels=32, out_channels=10, kernel_size=1),
     MaxAbsPool2d(kernel_size=4, stride=4),
     nn.Flatten(start_dim=1),
     nn.Linear(in_features=10, out_features=10)
@@ -134,5 +133,5 @@ for i_epoch in range(n_epochs):
     )
 
 print()
-print("Should have 1,053 parameters and final results similar to")
-print("epoch: 2   training loss: 0.2179   testing loss: 0.1785   training accuracy: 93.65%   testing accuracy: 94.87%")
+print("Should have 1,233 parameters and final results not wildly different from")
+print("epoch: 2   training loss: 0.239   testing loss: 0.2154   training accuracy: 93.24%   testing accuracy: 93.84%")
