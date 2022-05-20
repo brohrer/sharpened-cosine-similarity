@@ -99,4 +99,3 @@ from [@Oliver-Batchelor](https://github.com/oliver-batchelor)
 * the TensorFlow [implementation](https://colab.research.google.com/drive/1Lo-P_lMbw3t2RTwpzy1p8h0uKjkCx-RB)
 and [blog post](https://www.rpisoni.dev/posts/cossim-convolution/)
 from Raphael Pisoni ([@ml_4rtemi5 on Twitter](https://twitter.com/ml_4rtemi5)).
-
