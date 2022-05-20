@@ -53,11 +53,8 @@ class SharpCosSim2d(nn.Conv2d):
         # We want an int, assuming a square kernel, rather than a tuple.
         self.kernel_size = kernel_size
 
-        # Scaling weights in this way generates kernels that have
-        # an l2-norm of about 1. Since they get normalized to 1 during
-        # the forward pass anyway, this prevents any numerical
-        # or gradient weirdness that might result from large amounts of
-        # rescaling.
+        # The end result here should be uniformly distributed weights between
+        # -w_max and w_max.
         self.channels_per_kernel = self.in_channels // self.groups
         if self.shared_weights:
             self.n_kernels = self.out_channels // self.groups
