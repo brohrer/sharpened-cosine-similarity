@@ -14,7 +14,7 @@ An alternative to convolution for neural networks
 
 Sharpened cosine similarity is a strided operation, like convolution, that extracts features from an image.
 
-It is related to convolution, but with important defferences. Convolution is a strided dot product between a signal, *s*, and a kernel *k*.
+It is related to convolution, but with important differences. Convolution is a strided dot product between a signal, *s*, and a kernel *k*.
 
 ![Equation for convolution](doc/convolution.png)
 
